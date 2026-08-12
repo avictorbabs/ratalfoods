@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import AppLayout from '@/layouts/app-layout';
+import type { GalleryPageContent } from '@/types/ratalfoods';
 
 type GalleryItem = {
     id: number;
@@ -16,6 +17,7 @@ type GalleryItem = {
 
 type GalleryPageProps = {
     items: GalleryItem[];
+    pageContent: GalleryPageContent;
 };
 
 const fallbackItems: GalleryItem[] = [
@@ -83,21 +85,6 @@ const fallbackItems: GalleryItem[] = [
     },
 ];
 
-const featuredContent = [
-    {
-        title: 'Our Ingredients',
-        description:
-            'We believe that the key to great food is great ingredients. That’s why we only use the freshest, highest-quality ingredients in all of our dishes. We source our produce from local farmers whenever possible, and we are committed to using organic and non-GMO ingredients whenever possible. We also make everything from scratch in our kitchen, so you can be sure that your meal is fresh and flavorful.',
-    },
-    {
-        title: 'Our Sustainability',
-        description:
-            'We believe that good food should be good for the planet, too. That’s why we are committed to sustainability in everything we do. We use eco-friendly packaging materials, recycle and compost as much as possible, and source our ingredients from local and sustainable sources. We are always looking for ways to reduce our environmental impact and make a positive difference in our community.',
-    },
-];
-
-const showcaseImagePaths = ['/images/gallery1.webp', '/images/gallery2.webp'];
-
 function renderMedia(item: GalleryItem, className: string) {
     if (item.media_type === 'video') {
         return (
@@ -114,12 +101,10 @@ function renderMedia(item: GalleryItem, className: string) {
     return <img src={item.media_url} alt={item.title ?? 'Gallery media'} className={className} />;
 }
 
-export default function Gallery({ items }: GalleryPageProps) {
+export default function Gallery({ items, pageContent }: GalleryPageProps) {
     const sourceItems = items.length > 0 ? items : fallbackItems;
-    const featuredItems = sourceItems.filter((item) => item.is_featured).slice(0, 2);
-    const fallbackFeatured = sourceItems.slice(0, 2);
-    const topItems = featuredItems.length === 2 ? featuredItems : fallbackFeatured;
     const gridItems = sourceItems;
+    const showcaseImages = [pageContent.showcase_1, pageContent.showcase_2];
 
     return (
         <AppLayout>
@@ -128,7 +113,7 @@ export default function Gallery({ items }: GalleryPageProps) {
             <div>
                 <section className="relative h-64 overflow-hidden pt-20 sm:h-80 sm:pt-24">
                     <img
-                        src="https://media.base44.com/images/public/6a2f8570f73aa7ad1929a1a5/c2233b586_generated_51c27708.png"
+                        src={pageContent.hero.image}
                         alt="Nigerian food spread"
                         className="absolute inset-0 h-full w-full object-cover"
                     />
@@ -136,10 +121,10 @@ export default function Gallery({ items }: GalleryPageProps) {
                     <div className="relative z-10 flex h-full items-center justify-center px-4 text-center">
                         <div>
                             <p className="mb-3 font-body text-xs uppercase tracking-[0.3em] text-background/70">
-                                Explore Our Dishes
+                                {pageContent.hero.eyebrow}
                             </p>
                             <h1 className="font-heading text-4xl tracking-tight text-background sm:text-5xl">
-                                Gallery
+                                {pageContent.hero.title}
                             </h1>
                         </div>
                     </div>
@@ -155,14 +140,14 @@ export default function Gallery({ items }: GalleryPageProps) {
                         />
 
                         <h2 className="mt-8 text-center font-heading text-4xl italic">
-                            Highlighting Our Culinary Masterpieces
+                            {pageContent.heading}
                         </h2>
 
-                        {topItems.length > 0 && (
+                        {pageContent.featured.length > 0 && (
                             <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-                                {topItems.map((item, index) => (
+                                {pageContent.featured.map((block, index) => (
                                     <motion.article
-                                        key={item.id}
+                                        key={block.title}
                                         initial={{ opacity: 0, y: 16 }}
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
@@ -170,16 +155,16 @@ export default function Gallery({ items }: GalleryPageProps) {
                                     >
                                         <div className="overflow-hidden rounded-md bg-background shadow-sm">
                                             <img
-                                                src={showcaseImagePaths[index] ?? item.media_url}
-                                                alt={item.title ?? featuredContent[index]?.title ?? 'Gallery showcase'}
+                                                src={showcaseImages[index]}
+                                                alt={block.title}
                                                 className="h-56 w-full object-cover sm:h-64"
                                             />
                                         </div>
                                         <h3 className="mt-5 text-center font-heading text-[36px] leading-[1.15] italic">
-                                            {item.title ?? featuredContent[index]?.title}
+                                            {block.title}
                                         </h3>
                                         <p className="mx-auto mt-4 max-w-xl text-justify font-body text-base leading-relaxed text-muted-foreground">
-                                            {item.description ?? featuredContent[index]?.description}
+                                            {block.description}
                                         </p>
                                     </motion.article>
                                 ))}

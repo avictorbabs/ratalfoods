@@ -9,7 +9,6 @@ use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -153,9 +152,7 @@ class ProductController extends Controller
 
     private function storePublicFile(UploadedFile $file, string $directory): string
     {
-        $path = $file->store($directory, 'public');
-
-        return Storage::disk('public')->url($path);
+        return $file->store($directory, 'public');
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\PageContent;
 use App\Models\Product;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -28,12 +29,14 @@ class HomeController extends Controller
                 $imageUrl = $category->image_url;
 
                 if (! $imageUrl) {
-                    $imageUrl = Product::query()
+                    $fallbackProduct = Product::query()
                         ->where('category_id', $category->id)
                         ->where('is_active', true)
                         ->whereNotNull('image_url')
                         ->orderByDesc('is_featured')
-                        ->value('image_url');
+                        ->first();
+
+                    $imageUrl = $fallbackProduct?->image_url;
                 }
 
                 return [
@@ -53,6 +56,7 @@ class HomeController extends Controller
             'featuredProducts' => $featuredProducts,
             'categories' => $categories,
             'latestPosts' => $latestPosts,
+            'pageContent' => PageContent::resolved('home'),
         ]);
     }
 }

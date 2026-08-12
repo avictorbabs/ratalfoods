@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="Ratal Foods is temporarily unavailable while we prepare something better. Authentic Nigerian cuisine in Windsor, ON." />
+  <title>We'll Be Right Back | Ratal Foods</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f7f3eb;
+      --fg: #1a1a1a;
+      --muted: #666666;
+      --primary: #e1b44c;
+      --primary-ink: #1a1a1a;
+      --accent: #3d5c48;
+      --card: rgba(247, 243, 235, 0.92);
+      --line: rgba(26, 26, 26, 0.12);
+      --heading: "Cormorant Garamond", Georgia, serif;
+      --body: Inter, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      font-family: var(--body);
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .backdrop {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(160deg, rgba(26, 26, 26, 0.72) 0%, rgba(26, 26, 26, 0.55) 45%, rgba(26, 26, 26, 0.78) 100%),
+        url("https://media.base44.com/images/public/6a2f8570f73aa7ad1929a1a5/c2233b586_generated_51c27708.png") center / cover no-repeat;
+      transform: scale(1.02);
+      animation: drift 28s ease-in-out infinite alternate;
+    }
+
+    .backdrop::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 20%, rgba(225, 180, 76, 0.18), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 90%, rgba(61, 92, 72, 0.25), transparent 55%);
+      pointer-events: none;
+    }
+
+    @keyframes drift {
+      from { transform: scale(1.02) translate3d(0, 0, 0); }
+      to { transform: scale(1.06) translate3d(-1.2%, 0.8%, 0); }
+    }
+
+    .grain {
+      position: absolute;
+      inset: 0;
+      opacity: 0.07;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 2.5rem 1.25rem 2rem;
+      max-width: 42rem;
+      margin: 0 auto;
+      width: 100%;
+      text-align: center;
+      animation: rise 0.9s ease-out both;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+
+    .eyebrow::before,
+    .eyebrow::after {
+      content: "";
+      width: 1.5rem;
+      height: 1px;
+      background: var(--primary);
+      opacity: 0.7;
+    }
+
+    .brand {
+      font-family: var(--heading);
+      font-size: clamp(2.75rem, 9vw, 4.5rem);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 0.95;
+      color: #fff;
+      margin-bottom: 1.1rem;
+    }
+
+    .brand span {
+      color: var(--primary);
+    }
+
+    h1 {
+      font-family: var(--heading);
+      font-size: clamp(1.55rem, 4.5vw, 2.15rem);
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.95);
+      margin-bottom: 0.85rem;
+    }
+
+    .lead {
+      font-size: 0.98rem;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.72);
+      max-width: 28rem;
+      margin: 0 auto 2rem;
+      line-height: 1.7;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 0.375rem;
+      padding: 1.35rem 1.25rem 1.45rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+      animation: rise 1.05s 0.12s ease-out both;
+    }
+
+    .panel-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .contacts {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .contacts a {
+      display: block;
+      color: var(--fg);
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: color 0.2s ease;
+    }
+
+    .contacts a:hover { color: var(--accent); }
+
+    .contacts .label {
+      display: block;
+      font-size: 0.68rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .contacts .value {
+      font-weight: 500;
+    }
+
+    .phone .value {
+      color: var(--primary-ink);
+      font-size: 1.15rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.65rem;
+      margin-top: 1.25rem;
+      padding-top: 1.15rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.5rem;
+      padding: 0 1.15rem;
+      border-radius: 0.25rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--primary-ink);
+    }
+
+    .btn-primary:hover { background: #d4a63d; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--line);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--fg);
+    }
+
+    .foot {
+      position: relative;
+      z-index: 1;
+      padding: 1rem 1.25rem 1.5rem;
+      text-align: center;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .foot a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .foot a:hover { text-decoration: underline; }
+
+    @media (min-width: 640px) {
+      .content { padding: 3.5rem 1.5rem 2.5rem; }
+      .panel { padding: 1.6rem 1.75rem 1.7rem; }
+      .contacts {
+        grid-template-columns: 1fr 1fr;
+        text-align: left;
+        gap: 1rem 1.5rem;
+      }
+      .contacts .full { grid-column: 1 / -1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .backdrop, .content, .panel { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <main class="content">
+      <p class="eyebrow">Under maintenance</p>
+      <p class="brand">Ratal <span>Foods</span></p>
+      <h1>We're cooking up something better</h1>
+      <p class="lead">
+        Our website is temporarily offline while we prepare a fresh experience.
+        Orders, pickup, and questions are still welcome — reach us directly.
+      </p>
+
+      <section class="panel" aria-label="Contact information">
+        <p class="panel-label">Stay connected</p>
+        <div class="contacts">
+          <a class="phone full" href="tel:+12263487156">
+            <span class="label">Phone / WhatsApp</span>
+            <span class="value">226-348-7156</span>
+          </a>
+          <a href="https://maps.google.com/?q=499+University+Ave+W,+Windsor,+ON+N9A+5P8" target="_blank" rel="noopener noreferrer">
+            <span class="label">Visit us</span>
+            <span class="value">499 University Ave W, Windsor, ON</span>
+          </a>
+          <a href="https://www.instagram.com/ratalfoods" target="_blank" rel="noopener noreferrer">
+            <span class="label">Instagram</span>
+            <span class="value">@ratalfoods</span>
+          </a>
+        </div>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://wa.me/12263487156" target="_blank" rel="noopener noreferrer">WhatsApp us</a>
+          <a class="btn btn-ghost" href="tel:+12263487156">Call now</a>
+          <a class="btn btn-ghost" href="https://www.instagram.com/ratalfoods" target="_blank" rel="noopener noreferrer">Instagram</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      Authentic Nigerian Cuisine · <a href="https://www.ratalfoods.ca">www.ratalfoods.ca</a>
+      <br />
+      &copy; <span id="year"></span> Ratal Foods. All rights reserved.
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

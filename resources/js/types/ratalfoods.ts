@@ -71,16 +71,164 @@ export type User = {
     name: string;
     email: string;
     role: 'admin' | 'user';
+    email_verified_at?: string | null;
 };
 
 export type OrderComplete = {
     order_number: string;
     subtotal: number;
     tax: number;
+    delivery_fee?: number;
+    delivery_zone?: string | null;
     total: number;
     collection_method: 'pickup' | 'delivery_request';
     customer_name: string;
     customer_email: string;
+    pickup_time?: string | null;
+    payment_method?: 'cash_on_delivery' | 'stripe' | null;
+};
+
+export type DeliveryFeeZone = {
+    id: number;
+    name: string;
+    match_terms: string;
+    fee: string;
+};
+
+export type PageSlug = 'home' | 'about' | 'contact' | 'booking' | 'menu' | 'gallery' | 'footer';
+
+export type PageHeroContent = {
+    image: string;
+    eyebrow?: string;
+    title: string;
+    title_line_2?: string;
+    body?: string;
+    cta_primary_label?: string;
+    cta_primary_href?: string;
+    cta_secondary_label?: string;
+    cta_secondary_href?: string;
+};
+
+export type HomePageContent = {
+    hero: PageHeroContent;
+    perks: { title: string; description: string }[];
+    categories: { eyebrow: string; heading: string; link_label: string };
+    featured: {
+        eyebrow: string;
+        heading: string;
+        link_label: string;
+        mobile_link_label: string;
+    };
+    why: {
+        eyebrow: string;
+        heading: string;
+        slides: {
+            title: string;
+            description: string;
+            image: string;
+            image_alt: string;
+            cta_label: string;
+            cta_href: string;
+        }[];
+    };
+    cta: {
+        heading: string;
+        body: string;
+        primary_label: string;
+        primary_href: string;
+        secondary_label: string;
+        secondary_href: string;
+    };
+    newsletter: {
+        eyebrow: string;
+        heading: string;
+        body: string;
+        button_label: string;
+    };
+    blog: { eyebrow: string; heading: string; link_label: string };
+};
+
+export type AboutPageContent = {
+    hero: PageHeroContent;
+    story: {
+        image: string;
+        heading: string;
+        body: string;
+        cta_label: string;
+        cta_href: string;
+    };
+    history: { heading: string; body: string }[];
+    culture: {
+        heading: string;
+        body: string;
+        cta_label: string;
+        cta_href: string;
+        image: string;
+    };
+};
+
+export type ContactPageContent = {
+    hero: PageHeroContent;
+    intro: { eyebrow: string; heading: string; body: string };
+    location_label: string;
+    location: string;
+    phone_label: string;
+    phone: string;
+    email_label: string;
+    email: string;
+    whatsapp_url: string;
+    whatsapp_label: string;
+    map_heading: string;
+};
+
+export type BookingPageContent = {
+    hero: PageHeroContent;
+    types: { value: string; label: string; description: string }[];
+    success: { heading: string; confirm_copy: string; cta_label: string };
+};
+
+export type MenuDetailSection = {
+    title: string;
+    description: string;
+    items?: { name: string; description: string }[];
+    body: string;
+    cta_label: string;
+    cta_category: string;
+};
+
+export type MenuPageContent = {
+    hero: PageHeroContent;
+    details_button_label: string;
+    details: MenuDetailSection[];
+    board_left_top: string;
+    board_left_bottom: string;
+    board_right: string;
+};
+
+export type GalleryPageContent = {
+    hero: PageHeroContent;
+    heading: string;
+    featured: { title: string; description: string }[];
+    showcase_1: string;
+    showcase_2: string;
+};
+
+export type FooterLink = {
+    label: string;
+    href: string;
+};
+
+export type FooterPageContent = {
+    brand_name: string;
+    logo: string;
+    tagline: string;
+    phone: string;
+    taste_map_heading: string;
+    taste_map: FooterLink[];
+    community_heading: string;
+    community: FooterLink[];
+    copyright: string;
+    nav: FooterLink[];
 };
 
 export type SharedData = {
@@ -89,6 +237,7 @@ export type SharedData = {
         user: User | null;
     };
     storeSettings: StoreSettings;
+    footerContent: FooterPageContent;
     searchProducts: SearchProduct[];
     flash: {
         success?: string | null;

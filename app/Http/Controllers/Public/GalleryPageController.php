@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\GalleryItem;
+use App\Models\PageContent;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +21,7 @@ class GalleryPageController extends Controller
 
         return Inertia::render('public/Gallery', [
             'items' => $items,
+            'pageContent' => PageContent::resolved('gallery'),
         ]);
     }
 }

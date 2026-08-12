@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { getEffectiveBasePrice } from '@/lib/product-pricing';
-import type { Product } from '@/types/ratalfoods';
+import type { MenuPageContent, Product } from '@/types/ratalfoods';
 
 const PRICE_FILTERS = [
     { value: 'all', label: 'All Prices' },
@@ -30,98 +30,19 @@ type MenuProps = {
     filters: {
         category: string;
     };
+    pageContent: MenuPageContent;
 };
 
-type MenuDetailItem = {
-    name: string;
-    description: string;
-};
-
-type MenuDetailSection = {
-    title: string;
-    description: string;
-    items?: MenuDetailItem[];
-    body?: string;
-    cta?: {
-        label: string;
-        category: string;
-    };
-};
-
-const MENU_DETAILS_COLUMNS: MenuDetailSection[][] = [
-    [
-        {
-            title: 'Nigerian Classics',
-            description:
-                'Explore a variety of authentic Nigerian dishes, each crafted with care and tradition.',
-            items: [
-                {
-                    name: 'Jollof Rice and Chicken',
-                    description: 'A classic West African dish, bursting with flavour.',
-                },
-                {
-                    name: 'Egusi Soup and Pounded Yam',
-                    description:
-                        'A hearty combination of rich, savoury soup with soft, pounded yam.',
-                },
-                {
-                    name: 'Ofada Rice and Ayamase Sauce',
-                    description:
-                        'A traditional meal featuring local rice paired with spicy Ayamase sauce.',
-                },
-            ],
-        },
-        {
-            title: 'Grilled and Spicy Delights',
-            description: 'Indulge in dishes that pack a punch.',
-            items: [
-                {
-                    name: 'Spicy Suya',
-                    description:
-                        'Grilled, spicy meat skewers seasoned with a flavourful blend of spices.',
-                },
-                {
-                    name: 'Moimoi',
-                    description:
-                        'A steamed bean pudding made with ground beans, pepper, and spices.',
-                },
-            ],
-        },
-    ],
-    [
-        {
-            title: 'All-Time Favourites',
-            description: 'Enjoy some of our most loved meals, prepared to perfection.',
-            items: [
-                {
-                    name: 'Fried Rice and Chicken',
-                    description: 'A delicious and colourful blend of fried rice and tender chicken.',
-                },
-                {
-                    name: 'Amala and Abula',
-                    description:
-                        'A popular dish from Nigeria, perfect for those seeking bold flavours.',
-                },
-            ],
-        },
-        {
-            title: 'Seasonal Specials',
-            description: '',
-            body: 'At Ratal Foods, we love to celebrate the seasons with special dishes that highlight the freshest ingredients. Our seasonal specials change regularly, offering a unique dining experience with every visit. Be sure to check back often to discover what new flavours we have in store for you!',
-            cta: {
-                label: 'See Specials',
-                category: 'Seasonal Specials',
-            },
-        },
-    ],
-];
-
-export default function Menu({ products, categories, filters }: MenuProps) {
+export default function Menu({ products, categories, filters, pageContent }: MenuProps) {
     const [search, setSearch] = useState('');
     const [pickupOnly, setPickupOnly] = useState(false);
     const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
     const [menuDetailsOpen, setMenuDetailsOpen] = useState(false);
     const activeCategory = filters.category || 'All';
+    const detailColumns = [
+        pageContent.details.slice(0, 2),
+        pageContent.details.slice(2, 4),
+    ];
 
     const filtered = useMemo(() => {
         return products.filter((product) => {
@@ -170,7 +91,7 @@ export default function Menu({ products, categories, filters }: MenuProps) {
             <div>
                 <section className="relative h-64 overflow-hidden sm:h-80">
                     <img
-                        src="https://media.base44.com/images/public/6a2f8570f73aa7ad1929a1a5/c2233b586_generated_51c27708.png"
+                        src={pageContent.hero.image}
                         alt="Nigerian food spread"
                         className="absolute inset-0 h-full w-full object-cover"
                     />
@@ -178,10 +99,10 @@ export default function Menu({ products, categories, filters }: MenuProps) {
                     <div className="relative z-10 flex h-full items-center justify-center px-4 pt-16 text-center sm:pt-20">
                         <div>
                             <h1 className="font-heading text-4xl tracking-tight text-background sm:text-5xl">
-                                Our Menu
+                                {pageContent.hero.title}
                             </h1>
                             <p className="mx-auto mt-3 max-w-md font-body text-sm text-background/70">
-                                Authentic Nigerian dishes, crafted with heritage and served fresh
+                                {pageContent.hero.body}
                             </p>
                         </div>
                     </div>
@@ -242,7 +163,7 @@ export default function Menu({ products, categories, filters }: MenuProps) {
                             aria-controls="menu-details-panel"
                             className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-sm bg-primary px-5 font-body text-xs font-semibold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90 lg:w-auto"
                         >
-                            Read Menu Details
+                            {pageContent.details_button_label}
                             <ChevronDown
                                 className={`h-4 w-4 transition-transform duration-300 ${
                                     menuDetailsOpen ? 'rotate-180' : ''
@@ -264,7 +185,7 @@ export default function Menu({ products, categories, filters }: MenuProps) {
                             >
                                 <div className="mt-6 rounded-sm bg-muted px-5 py-8 sm:px-8 sm:py-10">
                                     <div className="grid gap-10 md:grid-cols-2 md:gap-12 lg:gap-16">
-                                        {MENU_DETAILS_COLUMNS.map((column, columnIndex) => (
+                                        {detailColumns.map((column, columnIndex) => (
                                             <div key={columnIndex} className="space-y-10">
                                                 {column.map((section) => (
                                                     <div key={section.title}>
@@ -276,9 +197,9 @@ export default function Menu({ products, categories, filters }: MenuProps) {
                                                                 {section.description}
                                                             </p>
                                                         ) : null}
-                                                        {section.items ? (
+                                                        {(section.items ?? []).length > 0 ? (
                                                             <ul className="mt-5 space-y-4">
-                                                                {section.items.map((item) => (
+                                                                {(section.items ?? []).map((item) => (
                                                                     <li key={item.name}>
                                                                         <p className="font-body text-sm font-semibold text-foreground">
                                                                             {item.name}
@@ -290,21 +211,16 @@ export default function Menu({ products, categories, filters }: MenuProps) {
                                                                 ))}
                                                             </ul>
                                                         ) : null}
-                                                        {section.body ? (
-                                                            <p className="mt-3 font-body text-sm leading-relaxed text-muted-foreground">
-                                                                {section.body}
-                                                            </p>
-                                                        ) : null}
-                                                        {section.cta ? (
+                                                        {section.cta_label ? (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    setCategory(section.cta!.category);
+                                                                    setCategory(section.cta_category);
                                                                     setMenuDetailsOpen(false);
                                                                 }}
                                                                 className="mt-5 inline-flex h-10 items-center justify-center rounded-sm bg-primary px-5 font-body text-xs font-semibold uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90"
                                                             >
-                                                                {section.cta.label}
+                                                                {section.cta_label}
                                                             </button>
                                                         ) : null}
                                                     </div>
@@ -316,19 +232,19 @@ export default function Menu({ products, categories, filters }: MenuProps) {
                                     <div className="mt-10 grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5">
                                         <div className="flex min-h-0 flex-col gap-4 md:gap-5">
                                             <img
-                                                src="/images/menu/menu-board-snacks-specials.png"
+                                                src={pageContent.board_left_top}
                                                 alt="Ratal Foods snacks, drinks, and specials menu board"
                                                 className="w-full rounded-sm object-cover"
                                             />
                                             <img
-                                                src="/images/menu/menu-board-entrees.png"
+                                                src={pageContent.board_left_bottom}
                                                 alt="Ratal Foods entrees, sides, and soups menu board"
                                                 className="w-full rounded-sm object-cover"
                                             />
                                         </div>
                                         <div className="min-h-[22rem] md:h-full">
                                             <img
-                                                src="/images/menu/menu-collage.png"
+                                                src={pageContent.board_right}
                                                 alt="Ratal Foods dish collage"
                                                 className="h-full w-full rounded-sm object-cover object-center"
                                             />

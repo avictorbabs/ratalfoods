@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
-import type { SharedData } from '@/types/ratalfoods';
+import type { ContactPageContent, SharedData } from '@/types/ratalfoods';
 
 function WhatsAppIcon({ className }: { className?: string }) {
     return (
@@ -22,10 +22,10 @@ function WhatsAppIcon({ className }: { className?: string }) {
     );
 }
 
-export default function Contact() {
+export default function Contact({ pageContent }: { pageContent: ContactPageContent }) {
     const { flash } = usePage<SharedData>().props;
-    const mapAddress = '499 University Ave W, Windsor, ON N9A 5P8, Canada';
-    const whatsappUrl = 'https://wa.me/12263487156';
+    const mapAddress = pageContent.location;
+    const whatsappUrl = pageContent.whatsapp_url;
 
     const { data, setData, post, processing, errors, reset } = useForm({
         type: 'general' as const,
@@ -56,7 +56,7 @@ export default function Contact() {
             <div>
                 <section className="relative h-64 overflow-hidden pt-20 sm:h-80 sm:pt-24">
                     <img
-                        src="https://media.base44.com/images/public/6a2f8570f73aa7ad1929a1a5/c2233b586_generated_51c27708.png"
+                        src={pageContent.hero.image}
                         alt="Nigerian food spread"
                         className="absolute inset-0 h-full w-full object-cover"
                     />
@@ -64,10 +64,10 @@ export default function Contact() {
                     <div className="relative z-10 flex h-full items-center justify-center px-4 text-center">
                         <div>
                             <p className="mb-3 font-body text-xs uppercase tracking-[0.3em] text-background/70">
-                                Let&apos;s Connect
+                                {pageContent.hero.eyebrow}
                             </p>
                             <h1 className="font-heading text-4xl tracking-tight text-background sm:text-5xl">
-                                Contact Us
+                                {pageContent.hero.title}
                             </h1>
                         </div>
                     </div>
@@ -84,21 +84,20 @@ export default function Contact() {
                     <div className="mt-6 grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-24">
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                             <p className="mb-4 font-body text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                                Get In Touch
+                                {pageContent.intro.eyebrow}
                             </p>
                             <h1 className="font-heading text-4xl tracking-tight sm:text-5xl">
-                                Let&apos;s Talk
+                                {pageContent.intro.heading}
                             </h1>
                             <p className="mt-4 max-w-md font-body text-base leading-relaxed text-muted-foreground">
-                                Have questions, special requests, or need a delivery quote? We&apos;d
-                                love to hear from you.
+                                {pageContent.intro.body}
                             </p>
 
                             <div className="mt-12 space-y-6">
                                 {[
-                                    { icon: MapPin, label: 'Location', value: mapAddress },
-                                    { icon: Phone, label: 'Phone', value: '226-348-7156' },
-                                    { icon: Mail, label: 'Email', value: 'augustina@ratalfoods.com' },
+                                    { icon: MapPin, label: pageContent.location_label, value: pageContent.location },
+                                    { icon: Phone, label: pageContent.phone_label, value: pageContent.phone },
+                                    { icon: Mail, label: pageContent.email_label, value: pageContent.email },
                                 ].map((info) => (
                                     <div key={info.label} className="flex items-start gap-4">
                                         <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -120,7 +119,7 @@ export default function Contact() {
                             >
                                 <a href={whatsappUrl} target="_blank" rel="noreferrer">
                                     <WhatsAppIcon className="h-5 w-5 text-[#25D366]" />
-                                    Message Us on Whatsapp
+                                    {pageContent.whatsapp_label}
                                 </a>
                             </Button>
                         </motion.div>
@@ -221,7 +220,7 @@ export default function Contact() {
                         className="mt-14"
                     >
                         <h2 className="font-heading text-2xl tracking-tight sm:text-3xl">
-                            Find Us
+                            {pageContent.map_heading}
                         </h2>
                         <p className="mt-2 font-body text-sm text-muted-foreground">
                             Visit us at {mapAddress}

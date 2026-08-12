@@ -8,52 +8,35 @@ import { PublicImage } from '@/components/public-image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import type { BlogPost, Product, ProductCategoryItem } from '@/types/ratalfoods';
+import type { BlogPost, HomePageContent, Product, ProductCategoryItem } from '@/types/ratalfoods';
 
 const CATEGORY_ITEMS_PER_SLIDE = 5;
 
-const storePerks = [
-    {
-        icon: Truck,
-        title: 'Fast Delivery',
-        description: 'Delivery on request',
-    },
-    {
-        icon: Tag,
-        title: 'Get Discount',
-        description: 'On deals',
-    },
-    {
-        icon: CircleHelp,
-        title: '24/7 Customer Care',
-        description: 'Best support',
-    },
-    {
-        icon: CreditCard,
-        title: 'Money Back Guarantee',
-        description: 'If terms & conditions are met',
-    },
-] as const;
+const perkIcons = [Truck, Tag, CircleHelp, CreditCard] as const;
 
-function StorePerksBar() {
+function StorePerksBar({ perks }: { perks: HomePageContent['perks'] }) {
     return (
         <div className="overflow-hidden rounded-lg border border-border bg-white lg:flex">
-            {storePerks.map((perk, index) => (
-                <div
-                    key={perk.title}
-                    className={`flex flex-1 items-center gap-4 px-6 py-5 sm:px-5 lg:px-6 lg:py-6 ${
-                        index > 0 ? 'border-t border-border lg:border-t-0 lg:border-l' : ''
-                    }`}
-                >
-                    <perk.icon className="h-8 w-8 shrink-0 text-foreground" strokeWidth={1.5} />
-                    <div>
-                        <p className="font-body text-sm font-semibold text-foreground">{perk.title}</p>
-                        <p className="mt-0.5 font-body text-xs text-muted-foreground">
-                            {perk.description}
-                        </p>
+            {perks.map((perk, index) => {
+                const Icon = perkIcons[index] ?? Truck;
+
+                return (
+                    <div
+                        key={`${perk.title}-${index}`}
+                        className={`flex flex-1 items-center gap-4 px-6 py-5 sm:px-5 lg:px-6 lg:py-6 ${
+                            index > 0 ? 'border-t border-border lg:border-t-0 lg:border-l' : ''
+                        }`}
+                    >
+                        <Icon className="h-8 w-8 shrink-0 text-foreground" strokeWidth={1.5} />
+                        <div>
+                            <p className="font-body text-sm font-semibold text-foreground">{perk.title}</p>
+                            <p className="mt-0.5 font-body text-xs text-muted-foreground">
+                                {perk.description}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }
@@ -62,6 +45,7 @@ type HomeProps = {
     featuredProducts: Product[];
     categories: ProductCategoryItem[];
     latestPosts: BlogPost[];
+    pageContent: HomePageContent;
 };
 
 function categoryImageName(name: string): string {
@@ -163,52 +147,36 @@ function CategoryCarousel({ categories }: { categories: ProductCategoryItem[] })
     );
 }
 
-const whyChooseUs = [
-    {
-        title: 'Authentic Nigerian Cuisine in Windsor, ON',
-        description:
-            'At Ratal Foods, we bring the rich flavours of Nigeria right to Windsor, ON, with a delightful twist. Our chefs are trained professionals, combining traditional recipes with modern techniques to serve you the very best of Nigerian dishes.',
-        imageName: 'authentic-cuisine',
-        imageAlt: 'Authentic Nigerian breakfast plate',
-    },
-    {
-        title: 'Explore Our Menu',
-        description:
-            'From spicy suya and egusi soup to ayamase and moimoi, we offer a variety of authentic Nigerian dishes prepared with care and expertise. Every meal is a reflection of our passion for preserving the originality of Nigerian cuisine.',
-        imageName: 'explore-menu',
-        imageAlt: 'Suya platter with seasoned rice',
-    },
-    {
-        title: 'Local & Certified',
-        description:
-            'Proudly serving Windsor and Essex County, we prioritize food safety. Our team holds food safety handler certificates and diplomas in culinary and hospitality management, ensuring you enjoy each dish with confidence.',
-        imageName: 'local-certified',
-        imageAlt: 'Grilled fish and chicken skewers with rice',
-    },
-];
-
-function WhyChooseUsCarousel() {
+function WhyChooseUsCarousel({ slides }: { slides: HomePageContent['why']['slides'] }) {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
-    const item = whyChooseUs[activeIndex];
+    const item = slides[activeIndex];
     const imageFirst = activeIndex % 2 === 0;
 
     const goToSlide = (index: number) => {
-        const total = whyChooseUs.length;
+        const total = slides.length;
+        if (total === 0) {
+            return;
+        }
+
         setActiveIndex(((index % total) + total) % total);
     };
 
     useEffect(() => {
-        if (isPaused) {
+        if (isPaused || slides.length === 0) {
             return;
         }
 
         const interval = window.setInterval(() => {
-            setActiveIndex((current) => (current + 1) % whyChooseUs.length);
+            setActiveIndex((current) => (current + 1) % slides.length);
         }, 6000);
 
         return () => window.clearInterval(interval);
-    }, [isPaused]);
+    }, [isPaused, slides.length]);
+
+    if (!item) {
+        return null;
+    }
 
     return (
         <div onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
@@ -224,10 +192,9 @@ function WhyChooseUsCarousel() {
                     >
                         <div className={imageFirst ? 'lg:order-1' : 'lg:order-2'}>
                             <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border bg-muted shadow-sm">
-                                <PublicImage
-                                    directory="/images/why-choose-us"
-                                    name={item.imageName}
-                                    alt={item.imageAlt}
+                                <img
+                                    src={item.image}
+                                    alt={item.image_alt}
                                     className="h-full w-full object-cover"
                                 />
                             </div>
@@ -249,7 +216,7 @@ function WhyChooseUsCarousel() {
                                 className="mt-6 h-11 px-7 font-body text-sm tracking-wide uppercase"
                                 asChild
                             >
-                                <Link href="/menu">Order Now</Link>
+                                <Link href={item.cta_href}>{item.cta_label}</Link>
                             </Button>
                         </div>
                     </motion.div>
@@ -267,9 +234,9 @@ function WhyChooseUsCarousel() {
                 </button>
 
                 <div className="flex items-center gap-2">
-                    {whyChooseUs.map((slide, index) => (
+                    {slides.map((slide, index) => (
                         <button
-                            key={slide.title}
+                            key={`${slide.title}-${index}`}
                             type="button"
                             onClick={() => goToSlide(index)}
                             className={`h-2.5 rounded-full transition-all ${
@@ -296,7 +263,7 @@ function WhyChooseUsCarousel() {
     );
 }
 
-function NewsletterSignup() {
+function NewsletterSignup({ copy }: { copy: HomePageContent['newsletter'] }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -313,13 +280,13 @@ function NewsletterSignup() {
     return (
         <div className="rounded-xl border border-border bg-white p-8 shadow-sm sm:p-10">
             <p className="font-body text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                Stay Connected
+                {copy.eyebrow}
             </p>
             <h3 className="mt-2 font-heading text-2xl tracking-tight sm:text-3xl">
-                Join Our Mailing List
+                {copy.heading}
             </h3>
             <p className="mt-3 font-body text-sm leading-relaxed text-muted-foreground">
-                Be the first to hear about new dishes and exclusive offers from Ratal Foods.
+                {copy.body}
             </p>
 
             <form onSubmit={submit} className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -361,14 +328,16 @@ function NewsletterSignup() {
                     disabled={processing}
                     className="h-11 w-full font-body text-sm tracking-wide uppercase md:col-span-2"
                 >
-                    {processing ? 'Subscribing...' : 'Subscribe'}
+                    {processing ? 'Subscribing...' : copy.button_label}
                 </Button>
             </form>
         </div>
     );
 }
 
-export default function Home({ featuredProducts, categories, latestPosts }: HomeProps) {
+export default function Home({ featuredProducts, categories, latestPosts, pageContent }: HomeProps) {
+    const { hero, perks, categories: categoryCopy, featured, why, cta, newsletter, blog } = pageContent;
+
     return (
         <AppLayout>
             <Head title="Home" />
@@ -376,7 +345,7 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
             <section className="relative flex h-screen max-h-[900px] min-h-[600px] items-center">
                 <div className="absolute inset-0">
                     <img
-                        src="https://media.base44.com/images/public/6a2f8570f73aa7ad1929a1a5/ca61fad2b_generated_1f3b0921.png"
+                        src={hero.image}
                         alt="Nigerian jollof rice with grilled chicken"
                         className="h-full w-full object-cover"
                     />
@@ -392,17 +361,17 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                         className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl"
                     >
                         <p className="mb-4 font-body text-xs uppercase tracking-[0.3em] text-white/80">
-                            Windsor, Ontario
+                            {hero.eyebrow}
                         </p>
                         <h1 className="font-heading text-4xl leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
-                            Food Is Life.
+                            {hero.title}
                             <br />
                             <span className="sm:whitespace-nowrap">
-                                Authentic Nigerian Cuisine, Jollof Rice & More.
+                                {hero.title_line_2}
                             </span>
                         </h1>
                         <p className="mt-6 font-body text-base leading-relaxed text-white sm:text-lg sm:whitespace-nowrap">
-                            Authentic Nigerian cuisine crafted with heritage, served with modern flair and certified safety.
+                            {hero.body}
                         </p>
                         <div className="mt-8 flex flex-wrap gap-3">
                             <Button
@@ -410,8 +379,8 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                                 className="group h-12 px-8 font-body text-sm tracking-wide uppercase"
                                 asChild
                             >
-                                <Link href="/menu">
-                                    Explore the Menu
+                                <Link href={hero.cta_primary_href ?? '/menu'}>
+                                    {hero.cta_primary_label}
                                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                                 </Link>
                             </Button>
@@ -420,7 +389,7 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                                 className="h-12 border-white bg-white px-8 font-body text-sm tracking-wide text-foreground uppercase hover:bg-white/90"
                                 asChild
                             >
-                                <Link href="/about">Our History</Link>
+                                <Link href={hero.cta_secondary_href ?? '/about'}>{hero.cta_secondary_label}</Link>
                             </Button>
                         </div>
                     </motion.div>
@@ -429,7 +398,7 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
 
             <section className="py-10 sm:py-14" style={{ backgroundColor: '#F3F1EB' }}>
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <StorePerksBar />
+                    <StorePerksBar perks={perks} />
                 </div>
             </section>
 
@@ -438,17 +407,17 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                     <div className="mb-8 flex items-end justify-between sm:mb-10">
                         <div>
                             <p className="mb-2 font-body text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                                Browse the Menu
+                                {categoryCopy.eyebrow}
                             </p>
                             <h2 className="font-heading text-2xl tracking-tight sm:text-3xl">
-                                Shop by Category
+                                {categoryCopy.heading}
                             </h2>
                         </div>
                         <Link
                             href="/menu?category=All"
                             className="hidden items-center gap-1.5 font-body text-sm text-primary hover:underline sm:flex"
                         >
-                            All Category
+                            {categoryCopy.link_label}
                             <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                     </div>
@@ -458,7 +427,7 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                             href="/menu?category=All"
                             className="inline-flex items-center gap-1.5 font-body text-sm text-primary"
                         >
-                            All Category
+                            {categoryCopy.link_label}
                             <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                     </div>
@@ -470,17 +439,17 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                     <div className="mb-12 flex items-end justify-between">
                         <div>
                             <p className="mb-2 font-body text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                                Curated Selection
+                                {featured.eyebrow}
                             </p>
                             <h2 className="font-heading text-3xl tracking-tight sm:text-4xl">
-                                Featured Dishes
+                                {featured.heading}
                             </h2>
                         </div>
                         <Link
                             href="/menu"
                             className="hidden items-center gap-1.5 font-body text-sm text-primary hover:underline sm:flex"
                         >
-                            View All
+                            {featured.link_label}
                             <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                     </div>
@@ -514,7 +483,7 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                             href="/menu"
                             className="inline-flex items-center gap-1.5 font-body text-sm text-primary"
                         >
-                            View Full Menu
+                            {featured.mobile_link_label}
                             <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                     </div>
@@ -525,14 +494,14 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="mb-16 text-center">
                         <p className="mb-2 font-body text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                            The Ratal Difference
+                            {why.eyebrow}
                         </p>
                         <h2 className="font-heading text-3xl tracking-tight sm:text-4xl">
-                            Why Choose Us
+                            {why.heading}
                         </h2>
                     </div>
 
-                    <WhyChooseUsCarousel />
+                    <WhyChooseUsCarousel slides={why.slides} />
                 </div>
             </section>
 
@@ -541,12 +510,10 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                     <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
                         <div className="text-center lg:text-left">
                             <h2 className="font-heading text-[36px] tracking-tight">
-                                Taste the Difference
+                                {cta.heading}
                             </h2>
                             <p className="mx-auto mt-6 max-w-lg font-body leading-relaxed text-muted-foreground lg:mx-0">
-                                Join us for a dining experience that celebrates the unique flavours
-                                of Nigeria, all prepared with a professional touch. Reach out to place
-                                your order or if you have any questions for us.
+                                {cta.body}
                             </p>
                             <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
                                 <Button
@@ -554,7 +521,7 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                                     className="h-12 px-8 font-body text-sm tracking-wide uppercase"
                                     asChild
                                 >
-                                    <Link href="/menu">Order Now</Link>
+                                    <Link href={cta.primary_href}>{cta.primary_label}</Link>
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -562,12 +529,12 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                                     className="h-12 px-8 font-body text-sm tracking-wide uppercase"
                                     asChild
                                 >
-                                    <Link href="/contact">Contact Us</Link>
+                                    <Link href={cta.secondary_href}>{cta.secondary_label}</Link>
                                 </Button>
                             </div>
                         </div>
 
-                        <NewsletterSignup />
+                        <NewsletterSignup copy={newsletter} />
                     </div>
                 </div>
             </section>
@@ -578,17 +545,17 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                         <div className="mb-12 flex items-end justify-between">
                             <div>
                                 <p className="mb-2 font-body text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                                    From Our Kitchen
+                                    {blog.eyebrow}
                                 </p>
                                 <h2 className="font-heading text-3xl tracking-tight sm:text-4xl">
-                                    Latest Update
+                                    {blog.heading}
                                 </h2>
                             </div>
                             <Link
                                 href="/blog"
                                 className="hidden items-center gap-1.5 font-body text-sm text-primary hover:underline sm:flex"
                             >
-                                View All
+                                {blog.link_label}
                                 <ArrowRight className="h-3.5 w-3.5" />
                             </Link>
                         </div>
@@ -604,7 +571,7 @@ export default function Home({ featuredProducts, categories, latestPosts }: Home
                                 href="/blog"
                                 className="inline-flex items-center gap-1.5 font-body text-sm text-primary"
                             >
-                                View All
+                                {blog.link_label}
                                 <ArrowRight className="h-3.5 w-3.5" />
                             </Link>
                         </div>

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\PublicMediaUrl;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 class GalleryItem extends Model
@@ -23,5 +25,13 @@ class GalleryItem extends Model
             'is_featured' => 'boolean',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected function mediaUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => PublicMediaUrl::resolve($value),
+            set: fn (?string $value) => PublicMediaUrl::normalizeForStorage($value),
+        );
     }
 }

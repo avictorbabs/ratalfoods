@@ -3,9 +3,11 @@
 use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\DeliveryFeeController as AdminDeliveryFeeController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\GalleryController as AdminGalleryController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ContactController;
@@ -33,6 +35,8 @@ Route::get('/contact', ContactPageController::class)->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 Route::get('/checkout', CheckoutPageController::class)->name('checkout');
 Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+Route::get('/orders/stripe/success', [OrderController::class, 'stripeSuccess'])->name('orders.stripe.success');
+Route::get('/orders/stripe/cancel', [OrderController::class, 'stripeCancel'])->name('orders.stripe.cancel');
 Route::get('/bookings', BookingsPageController::class)->name('bookings');
 Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
 Route::post('/newsletter', [NewsletterController::class, 'store'])->name('newsletter.store');
@@ -68,9 +72,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
     Route::patch('/orders/{order}', [AdminOrderController::class, 'updateStatus'])->name('orders.update-status');
     Route::delete('/orders/{order}', [AdminOrderController::class, 'destroy'])->name('orders.destroy');
+    Route::get('/delivery-fees', [AdminDeliveryFeeController::class, 'index'])->name('delivery-fees.index');
+    Route::post('/delivery-fees', [AdminDeliveryFeeController::class, 'store'])->name('delivery-fees.store');
+    Route::put('/delivery-fees/{deliveryFee}', [AdminDeliveryFeeController::class, 'update'])->name('delivery-fees.update');
+    Route::delete('/delivery-fees/{deliveryFee}', [AdminDeliveryFeeController::class, 'destroy'])->name('delivery-fees.destroy');
     Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
     Route::patch('/bookings/{booking}', [AdminBookingController::class, 'updateStatus'])->name('bookings.update-status');
     Route::delete('/bookings/{booking}', [AdminBookingController::class, 'destroy'])->name('bookings.destroy');
+    Route::get('/pages/{page}', [AdminPageController::class, 'edit'])->name('pages.edit');
+    Route::put('/pages/{page}', [AdminPageController::class, 'update'])->name('pages.update');
 });
 
 require __DIR__.'/settings.php';

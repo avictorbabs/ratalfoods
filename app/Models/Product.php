@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\PublicMediaUrl;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -42,10 +44,33 @@ class Product extends Model
             'is_active' => 'boolean',
             'in_stock' => 'boolean',
             'stock_quantity' => 'integer',
-            'gallery' => 'array',
             'variations' => 'array',
             'tags' => 'array',
         ];
+    }
+
+    protected function imageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => PublicMediaUrl::resolve($value),
+            set: fn (?string $value) => PublicMediaUrl::normalizeForStorage($value),
+        );
+    }
+
+    protected function gallery(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if ($value === null) {
+                    return null;
+                }
+
+                $decoded = is_array($value) ? $value : json_decode((string) $value, true);
+
+                return PublicMediaUrl::resolveGallery(is_array($decoded) ? $decoded : null);
+            },
+            set: fn (?array $value) => PublicMediaUrl::normalizeGalleryForStorage($value),
+        );
     }
 
     public function productCategory(): BelongsTo

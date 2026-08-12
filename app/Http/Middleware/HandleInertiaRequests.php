@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\PageContent;
 use App\Models\Product;
 use App\Models\StoreSetting;
 use Illuminate\Http\Request;
@@ -27,11 +28,13 @@ class HandleInertiaRequests extends Middleware
                         'id' => $request->user()->id,
                         'name' => $request->user()->name,
                         'email' => $request->user()->email,
-                        'role' => $request->user()->role->value,
+                        'role' => $request->user()->role?->value ?? 'user',
+                        'email_verified_at' => $request->user()->email_verified_at,
                     ]
                     : null,
             ],
             'storeSettings' => fn () => StoreSetting::current(),
+            'footerContent' => fn () => PageContent::resolved('footer'),
             'searchProducts' => fn () => Product::query()
                 ->where('is_active', true)
                 ->orderBy('name')

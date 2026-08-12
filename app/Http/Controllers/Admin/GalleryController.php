@@ -7,7 +7,6 @@ use App\Models\GalleryItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -63,7 +62,7 @@ class GalleryController extends Controller
             'title' => $validated['title'] ?? null,
             'description' => $validated['description'] ?? null,
             'media_type' => $mediaType,
-            'media_url' => Storage::disk('public')->url($path),
+            'media_url' => $path,
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
             'is_featured' => (bool) ($validated['is_featured'] ?? false),
             'is_active' => (bool) ($validated['is_active'] ?? true),

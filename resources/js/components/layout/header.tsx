@@ -30,6 +30,7 @@ export default function Header() {
     const { url, props } = usePage<SharedData>();
     const user = props.auth.user;
     const storeOpen = props.storeSettings.is_open;
+    const { brand_name: brandName, logo } = props.footerContent;
 
     const [mobileOpen, setMobileOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
@@ -65,9 +66,17 @@ export default function Header() {
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="relative flex h-16 items-center justify-between sm:h-20">
                     <Link href="/" className="flex items-center gap-2">
-                        <span className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                            Ratal Foods
-                        </span>
+                        {logo ? (
+                            <img
+                                src={logo}
+                                alt={brandName}
+                                className="h-12 w-auto max-w-[220px] object-contain sm:h-16"
+                            />
+                        ) : (
+                            <span className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                                {brandName}
+                            </span>
+                        )}
                     </Link>
 
                     <nav className="hidden items-center gap-8 md:flex">

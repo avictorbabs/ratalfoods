@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\PublicMediaUrl;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 class BlogPost extends Model
@@ -23,6 +25,14 @@ class BlogPost extends Model
             'published_at' => 'datetime',
             'is_published' => 'boolean',
         ];
+    }
+
+    protected function imageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => PublicMediaUrl::resolve($value),
+            set: fn (?string $value) => PublicMediaUrl::normalizeForStorage($value),
+        );
     }
 
     /**

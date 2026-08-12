@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useState, type PropsWithChildren } from 'react';
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+    type PropsWithChildren,
+} from 'react';
 import type { Product } from '@/types/ratalfoods';
 import { getEffectiveBasePrice } from '@/lib/product-pricing';
 
@@ -31,15 +38,52 @@ type CartContextValue = {
     subtotal: number;
 };
 
+const CART_STORAGE_KEY = 'ratalfoods_cart';
+
 const CartContext = createContext<CartContextValue | null>(null);
 
 function buildLineId(productId: number, variantKey?: string): string {
     return `${productId}:${variantKey ?? 'default'}`;
 }
 
+function readStoredCart(): CartItem[] {
+    if (typeof window === 'undefined') {
+        return [];
+    }
+
+    try {
+        const raw = window.localStorage.getItem(CART_STORAGE_KEY);
+        if (!raw) {
+            return [];
+        }
+
+        const parsed: unknown = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+
+        return parsed.filter(
+            (item): item is CartItem =>
+                typeof item === 'object' &&
+                item !== null &&
+                typeof (item as CartItem).line_id === 'string' &&
+                typeof (item as CartItem).product_id === 'number' &&
+                typeof (item as CartItem).product_name === 'string' &&
+                typeof (item as CartItem).price === 'number' &&
+                typeof (item as CartItem).quantity === 'number',
+        );
+    } catch {
+        return [];
+    }
+}
+
 export function CartProvider({ children }: PropsWithChildren) {
-    const [items, setItems] = useState<CartItem[]>([]);
+    const [items, setItems] = useState<CartItem[]>(() => readStoredCart());
     const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    }, [items]);
 
     const addItem = useCallback((product: Product, options?: AddItemOptions) => {
         const quantityToAdd = options?.quantity ?? 1;

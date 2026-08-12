@@ -7,13 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import AppLayout from '@/layouts/app-layout';
-import type { SharedData } from '@/types/ratalfoods';
-
-const bookingTypes = [
-    { value: 'dine_in', label: 'Dine In', desc: 'Reserve a table for your party' },
-    { value: 'catering', label: 'Catering', desc: 'We bring the feast to you' },
-    { value: 'private_event', label: 'Private Event', desc: 'Exclusive hire for special occasions' },
-];
+import type { BookingPageContent, SharedData } from '@/types/ratalfoods';
 
 const times = [
     '11:00 AM',
@@ -36,7 +30,7 @@ type ConfirmedBooking = {
     guests: number;
 };
 
-export default function Bookings() {
+export default function Bookings({ pageContent }: { pageContent: BookingPageContent }) {
     const { flash } = usePage<SharedData>().props;
     const [confirmed, setConfirmed] = useState<ConfirmedBooking | null>(null);
     const [lastSubmission, setLastSubmission] = useState<Omit<
@@ -93,7 +87,7 @@ export default function Bookings() {
                         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
                             <CheckCircle2 className="h-8 w-8 text-accent" />
                         </div>
-                        <h2 className="mb-2 font-heading text-3xl">Booking Received!</h2>
+                        <h2 className="mb-2 font-heading text-3xl">{pageContent.success.heading}</h2>
                         <p className="mb-1 font-body text-sm text-muted-foreground">
                             Booking #{confirmed.bookingNumber}
                         </p>
@@ -103,14 +97,14 @@ export default function Bookings() {
                         </p>
                         <p className="mb-8 font-body text-sm text-muted-foreground">
                             A confirmation has been sent to{' '}
-                            <span className="text-foreground">{confirmed.email}</span>. We&apos;ll
-                            confirm your booking within 2 hours.
+                            <span className="text-foreground">{confirmed.email}</span>.{' '}
+                            {pageContent.success.confirm_copy}
                         </p>
                         <Button
                             onClick={() => setConfirmed(null)}
                             className="font-body text-sm uppercase tracking-wide"
                         >
-                            Make Another Booking
+                            {pageContent.success.cta_label}
                         </Button>
                     </motion.div>
                 </div>
@@ -125,7 +119,7 @@ export default function Bookings() {
             <div>
                 <section className="relative h-64 overflow-hidden sm:h-80">
                     <img
-                        src="https://media.base44.com/images/public/6a2f8570f73aa7ad1929a1a5/c2233b586_generated_51c27708.png"
+                        src={pageContent.hero.image}
                         alt="Nigerian food spread"
                         className="absolute inset-0 h-full w-full object-cover"
                     />
@@ -133,14 +127,13 @@ export default function Bookings() {
                     <div className="relative z-10 flex h-full items-center justify-center px-4 pt-16 text-center sm:pt-20">
                         <div>
                             <p className="mb-3 font-body text-xs uppercase tracking-[0.3em] text-background/70">
-                                Reserve Your Experience
+                                {pageContent.hero.eyebrow}
                             </p>
                             <h1 className="font-heading text-4xl tracking-tight text-background sm:text-5xl">
-                                Make a Booking
+                                {pageContent.hero.title}
                             </h1>
                             <p className="mx-auto mt-3 max-w-md font-body text-sm text-background/70">
-                                Dine in, host a private event, or arrange catering — we&apos;d love to
-                                have you.
+                                {pageContent.hero.body}
                             </p>
                         </div>
                     </div>
@@ -155,7 +148,7 @@ export default function Bookings() {
                     />
 
                     <div className="mb-10 mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        {bookingTypes.map((type) => (
+                        {pageContent.types.map((type) => (
                             <button
                                 key={type.value}
                                 type="button"
@@ -174,7 +167,7 @@ export default function Bookings() {
                                     {type.label}
                                 </p>
                                 <p className="mt-1 font-body text-xs text-muted-foreground">
-                                    {type.desc}
+                                    {type.description}
                                 </p>
                             </button>
                         ))}

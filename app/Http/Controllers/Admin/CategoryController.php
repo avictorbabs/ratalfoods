@@ -9,7 +9,6 @@ use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -108,9 +107,7 @@ class CategoryController extends Controller
             $file = $request->file('category_image');
 
             if ($file instanceof UploadedFile) {
-                $path = $file->store('categories', 'public');
-
-                return Storage::disk('public')->url($path);
+                return $file->store('categories', 'public');
             }
         }
 

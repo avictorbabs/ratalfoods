@@ -7,7 +7,7 @@ use App\Models\BlogPost;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use App\Support\PublicMediaUrl;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -125,8 +125,7 @@ class BlogController extends Controller
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             if ($file instanceof UploadedFile) {
-                $path = $file->store('blog', 'public');
-                $imageUrl = Storage::disk('public')->url($path);
+                $imageUrl = $file->store('blog', 'public');
             }
         }
 
@@ -185,7 +184,7 @@ class BlogController extends Controller
             }
 
             $path = $file->store('blog/content', 'public');
-            $url = Storage::disk('public')->url($path);
+            $url = PublicMediaUrl::resolve($path) ?? $path;
             $mime = $file->getMimeType() ?? '';
 
             if (str_starts_with($mime, 'video/')) {

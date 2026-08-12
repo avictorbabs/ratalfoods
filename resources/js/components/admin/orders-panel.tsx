@@ -44,6 +44,12 @@ export type AdminOrder = {
     total: string;
     status: string;
     collection_method?: string;
+    pickup_time?: string | null;
+    delivery_address?: string | null;
+    delivery_time_preference?: string | null;
+    delivery_fee?: string | number | null;
+    delivery_zone?: string | null;
+    payment_method?: string | null;
     notes?: string | null;
     created_at: string;
     items: AdminOrderItem[];
@@ -248,6 +254,71 @@ export default function OrdersPanel({
                                                 Phone
                                             </p>
                                             <p>{selectedOrder.customer_phone}</p>
+                                        </div>
+                                    )}
+                                    {selectedOrder.collection_method && (
+                                        <div>
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                                                Collection
+                                            </p>
+                                            <p>
+                                                {selectedOrder.collection_method === 'pickup'
+                                                    ? 'Store Pickup'
+                                                    : 'Delivery Request'}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {selectedOrder.pickup_time && (
+                                        <div>
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                                                Pickup
+                                            </p>
+                                            <p>{selectedOrder.pickup_time}</p>
+                                        </div>
+                                    )}
+                                    {selectedOrder.delivery_address && (
+                                        <div>
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                                                Delivery Address
+                                            </p>
+                                            <p>{selectedOrder.delivery_address}</p>
+                                        </div>
+                                    )}
+                                    {selectedOrder.delivery_time_preference && (
+                                        <div>
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                                                Preferred Delivery
+                                            </p>
+                                            <p>{selectedOrder.delivery_time_preference}</p>
+                                        </div>
+                                    )}
+                                    {(Number(selectedOrder.delivery_fee) > 0 ||
+                                        selectedOrder.delivery_zone) && (
+                                        <div>
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                                                Delivery Fee
+                                            </p>
+                                            <p>
+                                                $
+                                                {formatPrice(
+                                                    String(selectedOrder.delivery_fee ?? 0),
+                                                )}
+                                                {selectedOrder.delivery_zone
+                                                    ? ` (${selectedOrder.delivery_zone})`
+                                                    : ''}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {selectedOrder.payment_method && (
+                                        <div>
+                                            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                                                Payment
+                                            </p>
+                                            <p>
+                                                {selectedOrder.payment_method === 'stripe'
+                                                    ? 'Stripe / Online'
+                                                    : 'Cash on Delivery'}
+                                            </p>
                                         </div>
                                     )}
                                 </div>

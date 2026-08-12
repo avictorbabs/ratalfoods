@@ -3,11 +3,15 @@ import { motion } from 'framer-motion';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import type { AboutPageContent } from '@/types/ratalfoods';
 
-const aboutImage1 = '/images/about-us/about1.webp';
-const aboutImage2 = '/images/about-us/about2.webp';
+type AboutProps = {
+    pageContent: AboutPageContent;
+};
 
-export default function About() {
+export default function About({ pageContent }: AboutProps) {
+    const { hero, story, history, culture } = pageContent;
+
     return (
         <AppLayout>
             <Head title="About Us" />
@@ -15,7 +19,7 @@ export default function About() {
             <div>
                 <section className="relative h-64 overflow-hidden pt-20 sm:h-80 sm:pt-24">
                     <img
-                        src="https://media.base44.com/images/public/6a2f8570f73aa7ad1929a1a5/c2233b586_generated_51c27708.png"
+                        src={hero.image}
                         alt="Nigerian food spread"
                         className="absolute inset-0 h-full w-full object-cover"
                     />
@@ -23,10 +27,10 @@ export default function About() {
                     <div className="relative z-10 flex h-full items-center justify-center px-4 text-center">
                         <div>
                             <p className="mb-3 font-body text-xs uppercase tracking-[0.3em] text-background/70">
-                                Our Story
+                                {hero.eyebrow}
                             </p>
                             <h1 className="font-heading text-4xl tracking-tight text-background sm:text-5xl">
-                                About Us
+                                {hero.title}
                             </h1>
                         </div>
                     </div>
@@ -49,8 +53,8 @@ export default function About() {
                             className="overflow-hidden rounded-md"
                         >
                             <img
-                                src={aboutImage1}
-                                alt="Grilled fish with pepper stew and fried plantain"
+                                src={story.image}
+                                alt={story.heading}
                                 className="aspect-[4/3] w-full object-cover"
                             />
                         </motion.div>
@@ -61,20 +65,17 @@ export default function About() {
                             transition={{ duration: 0.5, delay: 0.1 }}
                         >
                             <h1 className="font-heading text-[36px] leading-[1.15] tracking-tight italic">
-                                Bringing Passion for Nigerian Cuisine to Canada
+                                {story.heading}
                             </h1>
                             <p className="mt-6 font-body text-base leading-relaxed text-muted-foreground">
-                                Ratal Foods was founded by Augustina, whose culinary journey began
-                                in her small kitchen, cooking for intimate gatherings. After running
-                                her own establishment for several years, she migrated to Canada in
-                                2017, eager to continue her passion for Nigerian cuisine.
+                                {story.body}
                             </p>
                             <Button
                                 size="lg"
                                 className="mt-8 h-12 rounded-sm bg-primary px-8 font-body text-sm font-medium tracking-wide text-primary-foreground uppercase hover:bg-primary/90"
                                 asChild
                             >
-                                <Link href="/menu">Explore Our Menu</Link>
+                                <Link href={story.cta_href}>{story.cta_label}</Link>
                             </Button>
                         </motion.div>
                     </div>
@@ -84,40 +85,22 @@ export default function About() {
                 <section className="bg-muted/50 py-14 sm:py-20">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.4 }}
-                            >
-                                <h2 className="font-body text-xl font-medium tracking-tight text-foreground sm:text-2xl">
-                                    Building Skills and Experience
-                                </h2>
-                                <p className="mt-4 font-body text-base leading-relaxed text-muted-foreground">
-                                    Upon arriving in Canada, Augustina enrolled at St. Clair
-                                    College, where she earned a diploma in Culinary and Art
-                                    Management. Determined to enhance her skills, she pursued a
-                                    diploma in Hospitality Management and completed an internship at
-                                    Walt Disney World, gaining invaluable experience in the industry.
-                                </p>
-                            </motion.div>
-
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.4, delay: 0.1 }}
-                            >
-                                <h2 className="font-body text-xl font-medium tracking-tight text-foreground sm:text-2xl">
-                                    The Beginning of Something Special
-                                </h2>
-                                <p className="mt-4 font-body text-base leading-relaxed text-muted-foreground">
-                                    In 2024, after completing the Cook-Up Incubator Program,
-                                    Augustina launched Ratal Foods. Their first appearance at the
-                                    Downtown Windsor Farmers Market was met with overwhelming
-                                    success, with positive reviews and great sales.
-                                </p>
-                            </motion.div>
+                            {history.map((block, index) => (
+                                <motion.div
+                                    key={block.heading}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                                >
+                                    <h2 className="font-body text-xl font-medium tracking-tight text-foreground sm:text-2xl">
+                                        {block.heading}
+                                    </h2>
+                                    <p className="mt-4 font-body text-base leading-relaxed text-muted-foreground">
+                                        {block.body}
+                                    </p>
+                                </motion.div>
+                            ))}
                         </div>
                     </div>
                 </section>
@@ -132,20 +115,17 @@ export default function About() {
                                 transition={{ duration: 0.4 }}
                             >
                                 <h2 className="font-body text-xl font-medium tracking-tight text-foreground sm:text-2xl">
-                                    Celebrating Culture and Community
+                                    {culture.heading}
                                 </h2>
                                 <p className="mt-4 font-body text-base leading-relaxed text-muted-foreground">
-                                    With the Nigerian community in Windsor rapidly expanding, Ratal
-                                    Foods is proud to serve authentic Nigerian dishes and create an
-                                    inviting space for all to enjoy true flavors of Nigeria in
-                                    Ontario.
+                                    {culture.body}
                                 </p>
                                 <Button
                                     size="lg"
                                     className="mt-8 h-12 rounded-sm bg-primary px-8 font-body text-sm font-medium tracking-wide text-primary-foreground uppercase hover:bg-primary/90"
                                     asChild
                                 >
-                                    <Link href="/contact">Visit Us Today</Link>
+                                    <Link href={culture.cta_href}>{culture.cta_label}</Link>
                                 </Button>
                             </motion.div>
 
@@ -157,8 +137,8 @@ export default function About() {
                                 className="overflow-hidden rounded-md"
                             >
                                 <img
-                                    src={aboutImage2}
-                                    alt="Beans, fried plantain, and bread — a classic Nigerian meal"
+                                    src={culture.image}
+                                    alt={culture.heading}
                                     className="aspect-[4/3] w-full object-cover"
                                 />
                             </motion.div>

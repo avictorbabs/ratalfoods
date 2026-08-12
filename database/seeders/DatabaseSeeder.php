@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\UserRole;
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\DeliveryFee;
 use App\Models\GalleryItem;
 use App\Models\Product;
 use App\Models\StoreSetting;
@@ -16,6 +17,36 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         StoreSetting::current();
+
+        DeliveryFee::query()->updateOrCreate(
+            ['name' => 'Windsor'],
+            [
+                'match_terms' => 'Windsor, N9A, N8X, N8W, N8Y, N9B, N9C, N9E, University Ave',
+                'fee' => 8.00,
+                'is_active' => true,
+                'sort_order' => 0,
+            ],
+        );
+
+        DeliveryFee::query()->updateOrCreate(
+            ['name' => 'Tecumseh / Lakeshore'],
+            [
+                'match_terms' => 'Tecumseh, Lakeshore, N8N, N0R',
+                'fee' => 12.00,
+                'is_active' => true,
+                'sort_order' => 0,
+            ],
+        );
+
+        DeliveryFee::query()->updateOrCreate(
+            ['name' => 'LaSalle / Amherstburg'],
+            [
+                'match_terms' => 'LaSalle, Amherstburg, N9J, N9V',
+                'fee' => 14.00,
+                'is_active' => true,
+                'sort_order' => 0,
+            ],
+        );
 
         User::query()->updateOrCreate(
             ['email' => 'admin@ratalfoods.ca'],
