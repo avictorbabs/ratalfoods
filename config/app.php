@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Logo URL
+    |--------------------------------------------------------------------------
+    |
+    | Publicly reachable logo used for the favicon and in every email. Emails
+    | are opened outside this site, so this must be an absolute public URL.
+    |
+    */
+
+    'logo_url' => env('APP_LOGO_URL', 'https://ik.imagekit.io/ratalFoods/General/logo.webp?updatedAt=1790250940817'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

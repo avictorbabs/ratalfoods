@@ -18,6 +18,7 @@ class CheckoutPageController extends Controller
 
         return Inertia::render('public/Checkout', [
             'deliveryFees' => $deliveryFees,
+            'stripeEnabled' => filled(config('services.stripe.secret')),
         ]);
     }
 }

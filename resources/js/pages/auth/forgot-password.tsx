@@ -1,7 +1,9 @@
 // Components
+import Recaptcha from '@/components/recaptcha';
 import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useRef } from 'react';
+import type ReCAPTCHA from 'react-google-recaptcha';
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -12,13 +14,20 @@ import AuthLayout from '@/layouts/auth-layout';
 
 export default function ForgotPassword({ status }: { status?: string }) {
     const { data, setData, post, processing, errors } = useForm({
+        recaptcha: '',
         email: '',
     });
+
+    const recaptchaRef = useRef<ReCAPTCHA>(null);
+    const resetCaptcha = () => {
+        recaptchaRef.current?.reset();
+        setData('recaptcha', '');
+    };
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        post(route('password.email'));
+        post(route('password.email'), { onFinish: resetCaptcha });
     };
 
     return (
@@ -45,6 +54,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                         <InputError message={errors.email} />
                     </div>
 
+                    <Recaptcha ref={recaptchaRef} onChange={(token) => setData('recaptcha', token)} error={errors.recaptcha} className="mt-4" />
                     <div className="my-6 flex items-center justify-start">
                         <Button className="w-full" disabled={processing}>
                             {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}

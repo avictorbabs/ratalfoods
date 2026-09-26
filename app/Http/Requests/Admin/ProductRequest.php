@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -30,15 +31,21 @@ class ProductRequest extends FormRequest
      */
     public function rules(): array
     {
+        $product = $this->route('product');
+        $hasExistingImage = $product instanceof Product && filled($product->image_url);
+
         return [
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['required', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'sale_price' => ['nullable', 'numeric', 'min:0'],
             'sale_starts_at' => ['nullable', 'date'],
             'sale_ends_at' => ['nullable', 'date', 'after_or_equal:sale_starts_at'],
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')],
-            'product_image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+            'product_image' => [
+                $hasExistingImage ? 'nullable' : 'required',
+                'file', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120',
+            ],
             'gallery_files' => ['nullable', 'array'],
             'gallery_files.*' => ['file', 'mimes:jpg,jpeg,png,webp,gif,mp4,webm,mov', 'max:20480'],
             'existing_gallery' => ['nullable', 'array'],
@@ -58,6 +65,16 @@ class ProductRequest extends FormRequest
             'variations.*.options.*.value' => ['required', 'string', 'max:100'],
             'variations.*.options.*.label' => ['required', 'string', 'max:100'],
             'variations.*.options.*.price_modifier' => ['required', 'numeric'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'product_image.required' => 'Please upload a product image.',
         ];
     }
 

@@ -1,19 +1,10 @@
-import { Link, router, usePage } from '@inertiajs/react';
-import {
-    LayoutDashboard,
-    LogIn,
-    LogOut,
-    Menu,
-    Search,
-    ShoppingBag,
-    User,
-    X,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
 import InlineSearch from '@/components/layout/inline-search';
 import { useCart } from '@/lib/cart-store';
 import type { SharedData } from '@/types/ratalfoods';
+import { Link, router, usePage } from '@inertiajs/react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { LayoutDashboard, LogIn, LogOut, Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 const nav = [
     { label: 'Home', path: '/' },
@@ -62,20 +53,14 @@ export default function Header() {
     const dashboardHref = user?.role === 'admin' ? '/admin' : '/dashboard';
 
     return (
-        <header className="fixed top-0 right-0 left-0 z-50 border-b border-border bg-background">
+        <header className="border-border fixed top-0 right-0 left-0 z-50 border-b bg-white">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="relative flex h-16 items-center justify-between sm:h-20">
                     <Link href="/" className="flex items-center gap-2">
                         {logo ? (
-                            <img
-                                src={logo}
-                                alt={brandName}
-                                className="h-12 w-auto max-w-[220px] object-contain sm:h-16"
-                            />
+                            <img src={logo} alt={brandName} className="h-12 w-auto max-w-[220px] object-contain sm:h-16" />
                         ) : (
-                            <span className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                                {brandName}
-                            </span>
+                            <span className="font-heading text-foreground text-2xl font-semibold tracking-tight sm:text-3xl">{brandName}</span>
                         )}
                     </Link>
 
@@ -84,10 +69,8 @@ export default function Header() {
                             <Link
                                 key={item.path}
                                 href={item.path}
-                                className={`font-body text-sm tracking-wide uppercase transition-colors duration-300 hover:text-primary ${
-                                    pathname === item.path
-                                        ? 'text-primary'
-                                        : 'text-foreground/70'
+                                className={`font-body hover:text-primary text-sm tracking-wide uppercase transition-colors duration-300 ${
+                                    pathname === item.path ? 'text-primary' : 'text-foreground/70'
                                 }`}
                             >
                                 {item.label}
@@ -99,7 +82,7 @@ export default function Header() {
                         <button
                             type="button"
                             onClick={() => setSearchOpen(true)}
-                            className="p-2 text-foreground/70 transition-colors hover:text-primary"
+                            className="text-foreground/70 hover:text-primary p-2 transition-colors"
                             aria-label="Search"
                         >
                             <Search className="h-5 w-5" />
@@ -108,11 +91,11 @@ export default function Header() {
                         <button
                             type="button"
                             onClick={() => setIsOpen(true)}
-                            className="relative p-2 text-foreground transition-all duration-300 hover:scale-105 hover:text-primary"
+                            className="text-foreground hover:text-primary relative p-2 transition-all duration-300 hover:scale-105"
                         >
                             <ShoppingBag className="h-5 w-5" />
                             {itemCount > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                                <span className="bg-primary text-primary-foreground absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold">
                                     {itemCount}
                                 </span>
                             )}
@@ -122,7 +105,7 @@ export default function Header() {
                             <button
                                 type="button"
                                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                className="p-2 text-foreground/70 transition-colors hover:text-primary"
+                                className="text-foreground/70 hover:text-primary p-2 transition-colors"
                                 aria-label="Account"
                             >
                                 <User className="h-5 w-5" />
@@ -134,16 +117,12 @@ export default function Header() {
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 8, scale: 0.95 }}
                                         transition={{ duration: 0.15 }}
-                                        className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-md border border-border bg-card shadow-lg"
+                                        className="border-border bg-card absolute top-full right-0 z-50 mt-2 w-52 overflow-hidden rounded-md border shadow-lg"
                                     >
                                         {user && (
-                                            <div className="border-b border-border px-4 py-3">
-                                                <p className="truncate font-body text-xs font-medium">
-                                                    {user.name}
-                                                </p>
-                                                <p className="truncate font-body text-xs text-muted-foreground">
-                                                    {user.email}
-                                                </p>
+                                            <div className="border-border border-b px-4 py-3">
+                                                <p className="font-body truncate text-xs font-medium">{user.name}</p>
+                                                <p className="font-body text-muted-foreground truncate text-xs">{user.email}</p>
                                             </div>
                                         )}
                                         <div className="py-1">
@@ -152,17 +131,17 @@ export default function Header() {
                                                     <Link
                                                         href={dashboardHref}
                                                         onClick={() => setUserMenuOpen(false)}
-                                                        className="flex items-center gap-2.5 px-4 py-2.5 font-body text-sm transition-colors hover:bg-muted"
+                                                        className="font-body hover:bg-muted flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors"
                                                     >
-                                                        <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                                                        <LayoutDashboard className="text-muted-foreground h-4 w-4" />
                                                         Dashboard
                                                     </Link>
                                                     <button
                                                         type="button"
                                                         onClick={signOut}
-                                                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left font-body text-sm transition-colors hover:bg-muted"
+                                                        className="font-body hover:bg-muted flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors"
                                                     >
-                                                        <LogOut className="h-4 w-4 text-muted-foreground" />
+                                                        <LogOut className="text-muted-foreground h-4 w-4" />
                                                         Sign Out
                                                     </button>
                                                 </>
@@ -170,9 +149,9 @@ export default function Header() {
                                                 <Link
                                                     href="/login"
                                                     onClick={() => setUserMenuOpen(false)}
-                                                    className="flex items-center gap-2.5 px-4 py-2.5 font-body text-sm transition-colors hover:bg-muted"
+                                                    className="font-body hover:bg-muted flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors"
                                                 >
-                                                    <LogIn className="h-4 w-4 text-muted-foreground" />
+                                                    <LogIn className="text-muted-foreground h-4 w-4" />
                                                     Sign In
                                                 </Link>
                                             )}
@@ -182,11 +161,7 @@ export default function Header() {
                             </AnimatePresence>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setMobileOpen(!mobileOpen)}
-                            className="p-2 text-foreground md:hidden"
-                        >
+                        <button type="button" onClick={() => setMobileOpen(!mobileOpen)} className="text-foreground p-2 md:hidden">
                             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                         </button>
                     </div>
@@ -196,7 +171,7 @@ export default function Header() {
             </div>
 
             {!storeOpen && (
-                <div className="border-t border-border bg-muted px-4 py-2 text-center font-body text-xs text-muted-foreground">
+                <div className="border-border bg-muted font-body text-muted-foreground border-t px-4 py-2 text-center text-xs">
                     We&apos;re currently closed — orders and bookings will be reviewed when we reopen.
                 </div>
             )}
@@ -207,17 +182,15 @@ export default function Header() {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden border-t border-border bg-background md:hidden"
+                        className="border-border bg-background overflow-hidden border-t md:hidden"
                     >
                         <nav className="flex flex-col gap-1 px-6 py-4">
                             {nav.map((item) => (
                                 <Link
                                     key={item.path}
                                     href={item.path}
-                                    className={`py-3 font-body text-sm tracking-wide uppercase ${
-                                        pathname === item.path
-                                            ? 'text-primary'
-                                            : 'text-foreground/70'
+                                    className={`font-body py-3 text-sm tracking-wide uppercase ${
+                                        pathname === item.path ? 'text-primary' : 'text-foreground/70'
                                     }`}
                                 >
                                     {item.label}

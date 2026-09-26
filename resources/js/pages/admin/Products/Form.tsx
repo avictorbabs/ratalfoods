@@ -162,6 +162,8 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
         return product?.image_url ?? null;
     }, [data.product_image, product?.image_url]);
 
+    const productImageRequired = !isEditing || !product?.image_url;
+
     const newGalleryPreviews = useMemo(
         () =>
             data.gallery_files.map((file) => ({
@@ -257,9 +259,10 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                     <h2 className="font-heading text-lg">Basic information</h2>
                     <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
-                            <Label htmlFor="name">Product name</Label>
+                            <Label htmlFor="name" required>Product name</Label>
                             <Input
                                 id="name"
+                                required
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
                                 className="mt-1.5"
@@ -270,7 +273,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                         </div>
 
                         <div>
-                            <Label htmlFor="category_id">Category</Label>
+                            <Label htmlFor="category_id" required>Category</Label>
                             <Select
                                 value={data.category_id}
                                 onValueChange={(value) => setData('category_id', value)}
@@ -315,13 +318,17 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                         </div>
 
                         <div className="sm:col-span-2 lg:col-span-4">
-                            <Label htmlFor="description">Description</Label>
+                            <Label htmlFor="description" required>Description</Label>
                             <Textarea
                                 id="description"
+                                required
                                 value={data.description}
                                 onChange={(e) => setData('description', e.target.value)}
                                 className="mt-1.5 min-h-[120px]"
                             />
+                            {errors.description && (
+                                <p className="mt-1 font-body text-xs text-destructive">{errors.description}</p>
+                            )}
                         </div>
                     </div>
                 </section>
@@ -330,11 +337,12 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                     <h2 className="font-heading text-lg">Media</h2>
                     <div className="mt-4 grid gap-6 lg:grid-cols-2">
                         <div>
-                            <Label htmlFor="product_image">Product image</Label>
+                            <Label htmlFor="product_image" required={productImageRequired}>Product image</Label>
                             <Input
                                 id="product_image"
                                 type="file"
                                 accept="image/*"
+                                required={productImageRequired}
                                 className="mt-1.5"
                                 onChange={(e) =>
                                     setData('product_image', e.target.files?.[0] ?? null)
@@ -430,12 +438,13 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                     <h2 className="font-heading text-lg">Pricing & inventory</h2>
                     <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                         <div>
-                            <Label htmlFor="price">Regular price ($)</Label>
+                            <Label htmlFor="price" required>Regular price ($)</Label>
                             <Input
                                 id="price"
                                 type="number"
                                 min="0"
                                 step="0.01"
+                                required
                                 value={data.price}
                                 onChange={(e) => setData('price', e.target.value)}
                                 className="mt-1.5"
@@ -482,11 +491,12 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                         </div>
 
                         <div>
-                            <Label htmlFor="stock_quantity">Stock quantity</Label>
+                            <Label htmlFor="stock_quantity" required>Stock quantity</Label>
                             <Input
                                 id="stock_quantity"
                                 type="number"
                                 min="0"
+                                required
                                 value={data.stock_quantity}
                                 onChange={(e) =>
                                     setData('stock_quantity', Number(e.target.value))
@@ -560,8 +570,9 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                 >
                                     <div className="flex items-start gap-3">
                                         <div className="flex-1">
-                                            <Label>Attribute name</Label>
+                                            <Label required>Attribute name</Label>
                                             <Input
+                                                required
                                                 value={variation.name}
                                                 onChange={(e) =>
                                                     updateVariation(variationIndex, {
@@ -586,7 +597,9 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
 
                                     <div className="mt-4 space-y-2">
                                         <div className="hidden gap-2 font-body text-xs uppercase tracking-wider text-muted-foreground md:grid md:grid-cols-[1fr_1fr_120px_40px]">
-                                            <span>Value name</span>
+                                            <span>
+                                                Value name<span className="ml-0.5 text-destructive">*</span>
+                                            </span>
                                             <span>Slug (auto)</span>
                                             <span>Price +/-</span>
                                             <span />
@@ -598,6 +611,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                                 className="grid gap-2 md:grid-cols-[1fr_1fr_120px_40px]"
                                             >
                                                 <Input
+                                                    required
                                                     value={option.label}
                                                     placeholder="1 plate"
                                                     onChange={(e) => {

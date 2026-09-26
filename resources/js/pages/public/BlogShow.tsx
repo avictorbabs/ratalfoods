@@ -1,11 +1,13 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Image as ImageIcon, Video } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
 import { PageBreadcrumb } from '@/components/layout/page-breadcrumb';
+import Recaptcha from '@/components/recaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import type { BlogPost } from '@/types/ratalfoods';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Image as ImageIcon, Video } from 'lucide-react';
+import { FormEvent, useMemo, useRef, useState } from 'react';
+import type ReCAPTCHA from 'react-google-recaptcha';
 
 type BlogShowProps = {
     post: BlogPost;
@@ -101,21 +103,12 @@ function MediaCarousel({ media, title }: { media: MediaItem[]; title: string }) 
     };
 
     return (
-        <div className="mt-8 overflow-hidden rounded-xl border border-border bg-card">
+        <div className="border-border bg-card mt-8 overflow-hidden rounded-xl border">
             <div className="relative">
                 {active.type === 'video' ? (
-                    <video
-                        src={active.src}
-                        controls
-                        preload="metadata"
-                        className="aspect-[16/9] w-full bg-black object-contain"
-                    />
+                    <video src={active.src} controls preload="metadata" className="aspect-[16/9] w-full bg-black object-contain" />
                 ) : (
-                    <img
-                        src={active.src}
-                        alt={`${title} media ${activeIndex + 1}`}
-                        className="aspect-[16/9] w-full object-cover"
-                    />
+                    <img src={active.src} alt={`${title} media ${activeIndex + 1}`} className="aspect-[16/9] w-full object-cover" />
                 )}
 
                 {media.length > 1 && (
@@ -123,7 +116,7 @@ function MediaCarousel({ media, title }: { media: MediaItem[]; title: string }) 
                         <button
                             type="button"
                             onClick={previous}
-                            className="absolute left-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/60"
+                            className="absolute top-1/2 left-3 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/60"
                             aria-label="Previous media"
                         >
                             <ChevronLeft className="h-5 w-5" />
@@ -131,7 +124,7 @@ function MediaCarousel({ media, title }: { media: MediaItem[]; title: string }) 
                         <button
                             type="button"
                             onClick={next}
-                            className="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/60"
+                            className="absolute top-1/2 right-3 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/60"
                             aria-label="Next media"
                         >
                             <ChevronRight className="h-5 w-5" />
@@ -139,7 +132,7 @@ function MediaCarousel({ media, title }: { media: MediaItem[]; title: string }) 
                     </>
                 )}
 
-                <div className="absolute right-3 top-3 rounded bg-black/45 px-2 py-1 font-body text-[11px] uppercase tracking-wider text-white">
+                <div className="font-body absolute top-3 right-3 rounded bg-black/45 px-2 py-1 text-[11px] tracking-wider text-white uppercase">
                     {active.type === 'video' ? (
                         <span className="inline-flex items-center gap-1">
                             <Video className="h-3.5 w-3.5" />
@@ -155,8 +148,8 @@ function MediaCarousel({ media, title }: { media: MediaItem[]; title: string }) 
             </div>
 
             {media.length > 1 && (
-                <div className="flex items-center justify-between border-t border-border px-4 py-2">
-                    <p className="font-body text-xs text-muted-foreground">
+                <div className="border-border flex items-center justify-between border-t px-4 py-2">
+                    <p className="font-body text-muted-foreground text-xs">
                         Media {activeIndex + 1} of {media.length}
                     </p>
                     <div className="flex gap-1.5">
@@ -165,9 +158,7 @@ function MediaCarousel({ media, title }: { media: MediaItem[]; title: string }) 
                                 key={index}
                                 type="button"
                                 onClick={() => setActiveIndex(index)}
-                                className={`h-2.5 w-2.5 rounded-full ${
-                                    index === activeIndex ? 'bg-primary' : 'bg-muted'
-                                }`}
+                                className={`h-2.5 w-2.5 rounded-full ${index === activeIndex ? 'bg-primary' : 'bg-muted'}`}
                                 aria-label={`Go to media ${index + 1}`}
                             />
                         ))}
@@ -179,66 +170,69 @@ function MediaCarousel({ media, title }: { media: MediaItem[]; title: string }) 
 }
 
 function NewsletterBox() {
-    const { data, setData, post: submitNewsletter, processing, errors, reset } = useForm({
+    const {
+        data,
+        setData,
+        post: submitNewsletter,
+        processing,
+        errors,
+        reset,
+    } = useForm({
         name: '',
         email: '',
+        recaptcha: '',
     });
+    const recaptchaRef = useRef<ReCAPTCHA>(null);
+    const resetCaptcha = () => {
+        recaptchaRef.current?.reset();
+        setData('recaptcha', '');
+    };
 
     const submit = (event: FormEvent) => {
         event.preventDefault();
         submitNewsletter('/newsletter', {
             preserveScroll: true,
+            onFinish: resetCaptcha,
             onSuccess: () => reset(),
         });
     };
 
     return (
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <p className="font-body text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                Stay Connected
-            </p>
-            <h3 className="mt-2 font-heading text-2xl tracking-tight sm:text-3xl">
-                Join Our Mailing List
-            </h3>
-            <p className="mt-3 font-body text-sm leading-relaxed text-muted-foreground">
+        <div className="border-border rounded-xl border bg-white p-6 shadow-sm">
+            <p className="font-body text-muted-foreground text-xs tracking-[0.3em] uppercase">Stay Connected</p>
+            <h3 className="font-heading mt-2 text-2xl tracking-tight sm:text-3xl">Join Our Mailing List</h3>
+            <p className="font-body text-muted-foreground mt-3 text-sm leading-relaxed">
                 Be the first to hear about new dishes and exclusive offers from Ratal Foods.
             </p>
 
             <form onSubmit={submit} className="mt-6 grid grid-cols-1 gap-4">
                 <div>
-                    <label className="mb-1.5 block font-body text-xs uppercase tracking-wider text-muted-foreground">
-                        Name
-                    </label>
+                    <label className="font-body text-muted-foreground mb-1.5 block text-xs tracking-wider uppercase">Name</label>
                     <Input
                         required
                         value={data.name}
                         onChange={(event) => setData('name', event.target.value)}
                         placeholder="Your name"
-                        className="h-11 font-body text-sm"
+                        className="font-body h-11 text-sm"
                     />
-                    {errors.name && <p className="mt-1 text-sm text-destructive">{errors.name}</p>}
+                    {errors.name && <p className="text-destructive mt-1 text-sm">{errors.name}</p>}
                 </div>
 
                 <div>
-                    <label className="mb-1.5 block font-body text-xs uppercase tracking-wider text-muted-foreground">
-                        Email
-                    </label>
+                    <label className="font-body text-muted-foreground mb-1.5 block text-xs tracking-wider uppercase">Email</label>
                     <Input
                         required
                         type="email"
                         value={data.email}
                         onChange={(event) => setData('email', event.target.value)}
                         placeholder="you@example.com"
-                        className="h-11 font-body text-sm"
+                        className="font-body h-11 text-sm"
                     />
-                    {errors.email && <p className="mt-1 text-sm text-destructive">{errors.email}</p>}
+                    {errors.email && <p className="text-destructive mt-1 text-sm">{errors.email}</p>}
                 </div>
 
-                <Button
-                    type="submit"
-                    disabled={processing}
-                    className="h-11 w-full font-body text-sm tracking-wide uppercase"
-                >
+                <Recaptcha ref={recaptchaRef} onChange={(token) => setData('recaptcha', token)} error={errors.recaptcha} />
+                <Button type="submit" disabled={processing} className="font-body h-11 w-full text-sm tracking-wide uppercase">
                     {processing ? 'Subscribing...' : 'Subscribe'}
                 </Button>
             </form>
@@ -248,10 +242,7 @@ function NewsletterBox() {
 
 export default function BlogShow({ post, recentPosts }: BlogShowProps) {
     const contentLooksHtml = /<[^>]+>/.test(post.content);
-    const { contentHtml, media } = useMemo(
-        () => extractContentAndMedia(post.content),
-        [post.content],
-    );
+    const { contentHtml, media } = useMemo(() => extractContentAndMedia(post.content), [post.content]);
 
     return (
         <AppLayout>
@@ -260,24 +251,17 @@ export default function BlogShow({ post, recentPosts }: BlogShowProps) {
             <div>
                 <section className="relative h-64 overflow-hidden pt-20 sm:h-80 sm:pt-24">
                     <img
-                        src={
-                            post.image_url ??
-                            'https://media.base44.com/images/public/6a2f8570f73aa7ad1929a1a5/c2233b586_generated_51c27708.png'
-                        }
+                        src={post.image_url ?? 'https://media.base44.com/images/public/6a2f8570f73aa7ad1929a1a5/c2233b586_generated_51c27708.png'}
                         alt={post.title}
                         className="absolute inset-0 h-full w-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-foreground/60" />
+                    <div className="bg-foreground/60 absolute inset-0" />
                     <div className="relative z-10 flex h-full items-center justify-center px-4 text-center">
                         <div>
-                            <p className="mb-3 font-body text-xs uppercase tracking-[0.3em] text-background/70">
-                                From Our Kitchen
-                            </p>
-                            <h1 className="font-heading text-4xl tracking-tight text-background sm:text-5xl">
-                                {post.title}
-                            </h1>
+                            <p className="font-body text-background/70 mb-3 text-xs tracking-[0.3em] uppercase">From Our Kitchen</p>
+                            <h1 className="font-heading text-background text-4xl tracking-tight sm:text-5xl">{post.title}</h1>
                             {post.published_at && (
-                                <p className="mt-3 font-body text-xs uppercase tracking-[0.25em] text-background/80">
+                                <p className="font-body text-background/80 mt-3 text-xs tracking-[0.25em] uppercase">
                                     {formatDate(post.published_at)}
                                 </p>
                             )}
@@ -286,35 +270,22 @@ export default function BlogShow({ post, recentPosts }: BlogShowProps) {
                 </section>
 
                 <section className="mx-auto max-w-7xl px-4 py-8 pb-16 sm:px-6 lg:px-8 lg:pb-20">
-                    <PageBreadcrumb
-                        items={[
-                            { title: 'Home', href: '/' },
-                            { title: 'Blog', href: '/blog' },
-                            { title: post.title },
-                        ]}
-                    />
+                    <PageBreadcrumb items={[{ title: 'Home', href: '/' }, { title: 'Blog', href: '/blog' }, { title: post.title }]} />
 
                     <div className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-3 lg:gap-12">
                         <article className="lg:col-span-2">
-                            <Link
-                                href="/blog"
-                                className="mb-8 inline-flex items-center gap-1.5 font-body text-sm text-primary hover:underline"
-                            >
+                            <Link href="/blog" className="font-body text-primary mb-8 inline-flex items-center gap-1.5 text-sm hover:underline">
                                 <ArrowLeft className="h-3.5 w-3.5" />
                                 Back to Blog
                             </Link>
 
                             {post.image_url && (
-                                <div className="mt-4 overflow-hidden rounded-xl border border-border">
-                                    <img
-                                        src={post.image_url}
-                                        alt={post.title}
-                                        className="aspect-[16/9] w-full object-cover"
-                                    />
+                                <div className="border-border mt-4 overflow-hidden rounded-xl border">
+                                    <img src={post.image_url} alt={post.title} className="aspect-[16/9] w-full object-cover" />
                                 </div>
                             )}
 
-                            <div className="prose prose-neutral mt-8 max-w-none font-body text-base leading-relaxed text-muted-foreground">
+                            <div className="prose prose-neutral font-body text-muted-foreground mt-8 max-w-none text-base leading-relaxed">
                                 {contentLooksHtml ? (
                                     <div
                                         dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -333,21 +304,15 @@ export default function BlogShow({ post, recentPosts }: BlogShowProps) {
                         </article>
 
                         <aside className="space-y-8">
-                            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                            <div className="border-border rounded-xl border bg-white p-5 shadow-sm">
                                 <h3 className="font-heading text-2xl tracking-tight">Recent Posts</h3>
                                 {recentPosts.length === 0 ? (
-                                    <p className="mt-4 font-body text-sm text-muted-foreground">
-                                        No recent posts available.
-                                    </p>
+                                    <p className="font-body text-muted-foreground mt-4 text-sm">No recent posts available.</p>
                                 ) : (
                                     <div className="mt-5 space-y-4">
                                         {recentPosts.slice(0, 5).map((recentPost) => (
-                                            <Link
-                                                key={recentPost.id}
-                                                href={`/blog/${recentPost.slug}`}
-                                                className="flex items-start gap-3"
-                                            >
-                                                <div className="h-16 w-20 flex-shrink-0 overflow-hidden rounded-md border border-border bg-muted">
+                                            <Link key={recentPost.id} href={`/blog/${recentPost.slug}`} className="flex items-start gap-3">
+                                                <div className="border-border bg-muted h-16 w-20 flex-shrink-0 overflow-hidden rounded-md border">
                                                     {recentPost.image_url ? (
                                                         <img
                                                             src={recentPost.image_url}
@@ -355,15 +320,15 @@ export default function BlogShow({ post, recentPosts }: BlogShowProps) {
                                                             className="h-full w-full object-cover"
                                                         />
                                                     ) : (
-                                                        <div className="h-full w-full bg-muted" />
+                                                        <div className="bg-muted h-full w-full" />
                                                     )}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="line-clamp-2 font-body text-sm leading-snug text-foreground hover:text-primary">
+                                                    <p className="font-body text-foreground hover:text-primary line-clamp-2 text-sm leading-snug">
                                                         {recentPost.title}
                                                     </p>
                                                     {recentPost.published_at && (
-                                                        <p className="mt-1 font-body text-xs uppercase tracking-wider text-muted-foreground">
+                                                        <p className="font-body text-muted-foreground mt-1 text-xs tracking-wider uppercase">
                                                             {formatDate(recentPost.published_at)}
                                                         </p>
                                                     )}

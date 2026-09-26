@@ -1,34 +1,22 @@
-import { Head, Link } from '@inertiajs/react';
-import {
-    AlertCircle,
-    ArrowLeft,
-    ChevronDown,
-    Clock,
-    Minus,
-    Plus,
-    ShoppingBag,
-    Star,
-    Store,
-    Truck,
-} from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useMemo, useState, type ReactNode } from 'react';
+import ProductPriceDisplay from '@/components/products/product-price-display';
+import WriteReviewDialog from '@/components/products/write-review-dialog';
 import { Button } from '@/components/ui/button';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import AppLayout from '@/layouts/app-layout';
 import { useCart } from '@/lib/cart-store';
-import { getProductPricing } from '@/lib/product-pricing';
-import ProductPriceDisplay from '@/components/products/product-price-display';
-import { cn } from '@/lib/utils';
 import { formatPrice } from '@/lib/price';
-import type { Product, ProductVariation } from '@/types/ratalfoods';
+import { getProductPricing } from '@/lib/product-pricing';
+import { cn } from '@/lib/utils';
+import type { Product, ProductReview, ProductReviewStats, ProductVariation } from '@/types/ratalfoods';
+import { Head, Link } from '@inertiajs/react';
+import { motion } from 'framer-motion';
+import { AlertCircle, ArrowLeft, ChevronDown, Clock, Minus, Plus, ShoppingBag, Star, Store } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 type ProductDetailProps = {
     product: Product;
+    reviews: ProductReview[];
+    reviewStats: ProductReviewStats;
 };
 
 type SelectedVariants = Record<string, string>;
@@ -39,11 +27,7 @@ function resolveVariations(product: Product): ProductVariation[] {
     }
 
     return product.variations.filter(
-        (variation) =>
-            variation.name.trim() !== '' &&
-            variation.options.some(
-                (option) => option.label.trim() !== '' && option.value.trim() !== '',
-            ),
+        (variation) => variation.name.trim() !== '' && variation.options.some((option) => option.label.trim() !== '' && option.value.trim() !== ''),
     );
 }
 
@@ -62,53 +46,36 @@ function resolveTags(product: Product): string[] {
 }
 
 function buildInitialSelections(variations: ProductVariation[]): SelectedVariants {
-    return Object.fromEntries(
-        variations.map((variation) => [variation.name, variation.options[0]?.value ?? '']),
-    );
+    return Object.fromEntries(variations.map((variation) => [variation.name, variation.options[0]?.value ?? '']));
 }
 
-function DetailAccordion({
-    title,
-    children,
-    defaultOpen = false,
-}: {
-    title: string;
-    children: ReactNode;
-    defaultOpen?: boolean;
-}) {
+function DetailAccordion({ title, children, defaultOpen = false }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
     const [open, setOpen] = useState(defaultOpen);
 
     return (
         <Collapsible open={open} onOpenChange={setOpen}>
-            <div className="border-b border-border">
+            <div className="border-border border-b">
                 <CollapsibleTrigger className="flex w-full items-center justify-between py-4 text-left">
-                    <span className="font-body text-xs font-semibold tracking-[0.2em] text-foreground uppercase">
-                        {title}
-                    </span>
-                    <ChevronDown
-                        className={cn(
-                            'h-4 w-4 text-muted-foreground transition-transform',
-                            open && 'rotate-180',
-                        )}
-                    />
+                    <span className="font-body text-foreground text-xs font-semibold tracking-[0.2em] uppercase">{title}</span>
+                    <ChevronDown className={cn('text-muted-foreground h-4 w-4 transition-transform', open && 'rotate-180')} />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pb-5 font-body text-sm leading-relaxed text-muted-foreground">
-                    {children}
-                </CollapsibleContent>
+                <CollapsibleContent className="font-body text-muted-foreground pb-5 text-sm leading-relaxed">{children}</CollapsibleContent>
             </div>
         </Collapsible>
     );
 }
 
-export default function ProductDetail({ product }: ProductDetailProps) {
+export default function ProductDetail({ product, reviewStats }: ProductDetailProps) {
     const [quantity, setQuantity] = useState(1);
+    const [reviewDialogOpen, setReviewDialogOpen] = useState(
+        () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('review') === '1',
+    );
     const { addItem } = useCart();
+    const roundedAverage = reviewStats.average ? Math.round(reviewStats.average) : 0;
 
     const variations = useMemo(() => resolveVariations(product), [product]);
     const tags = useMemo(() => resolveTags(product), [product]);
-    const [selectedVariants, setSelectedVariants] = useState<SelectedVariants>(() =>
-        buildInitialSelections(variations),
-    );
+    const [selectedVariants, setSelectedVariants] = useState<SelectedVariants>(() => buildInitialSelections(variations));
 
     const pricing = useMemo(() => getProductPricing(product), [product]);
     const basePrice = pricing.effectivePrice;
@@ -160,7 +127,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8">
                     <Link
                         href="/menu"
-                        className="mb-8 inline-flex items-center gap-1.5 font-body text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        className="font-body text-muted-foreground hover:text-foreground mb-8 inline-flex items-center gap-1.5 text-sm transition-colors"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         Back to Menu
@@ -168,23 +135,17 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
                     <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                            <div className="relative aspect-square overflow-hidden rounded-xl border border-border bg-muted shadow-sm">
+                            <div className="border-border bg-muted relative aspect-square overflow-hidden rounded-xl border shadow-sm">
                                 {product.image_url ? (
-                                    <img
-                                        src={product.image_url}
-                                        alt={product.name}
-                                        className="h-full w-full object-cover"
-                                    />
+                                    <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
                                 ) : (
-                                    <div className="h-full w-full bg-muted" />
+                                    <div className="bg-muted h-full w-full" />
                                 )}
 
                                 {product.available_for_pickup && inStock && (
-                                    <div className="absolute top-4 left-4 flex items-center gap-1 rounded-sm bg-primary px-2.5 py-1 text-primary-foreground">
+                                    <div className="bg-primary text-primary-foreground absolute top-4 left-4 flex items-center gap-1 rounded-sm px-2.5 py-1">
                                         <Clock className="h-3 w-3" />
-                                        <span className="font-body text-[10px] uppercase tracking-wider">
-                                            Pickup Ready
-                                        </span>
+                                        <span className="font-body text-[10px] tracking-wider uppercase">Pickup Ready</span>
                                     </div>
                                 )}
                             </div>
@@ -194,47 +155,40 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.1 }}
-                            className="self-start lg:sticky lg:top-24"
+                            className="border-border self-start rounded-md border bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-24"
                         >
                             <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-sm border border-border bg-muted px-2.5 py-1 font-body text-[10px] uppercase tracking-wider text-foreground">
+                                <span className="border-border bg-muted font-body text-foreground rounded-sm border px-2.5 py-1 text-[10px] tracking-wider uppercase">
                                     {product.category}
                                 </span>
                                 {!inStock && (
-                                    <span className="inline-flex items-center gap-1 rounded-sm border border-destructive/20 bg-destructive/10 px-2.5 py-1 font-body text-[10px] uppercase tracking-wider text-destructive">
+                                    <span className="border-destructive/20 bg-destructive/10 font-body text-destructive inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[10px] tracking-wider uppercase">
                                         <AlertCircle className="h-3 w-3" />
                                         Out of stock
                                     </span>
                                 )}
                             </div>
 
-                            <h1 className="mt-4 font-heading text-3xl tracking-tight sm:text-4xl">
-                                {product.name}
-                            </h1>
+                            <h1 className="font-heading mt-4 text-3xl tracking-tight sm:text-4xl">{product.name}</h1>
 
-                            <p className="mt-2 inline-flex items-center gap-1.5 font-body text-sm text-muted-foreground">
+                            <p className="font-body text-muted-foreground mt-2 inline-flex items-center gap-1.5 text-sm">
                                 <Store className="h-3.5 w-3.5" />
                                 Sold by Ratal Foods
                             </p>
 
                             <div className="mt-4">
-                                <ProductPriceDisplay
-                                    pricing={pricing}
-                                    amount={unitPrice}
-                                    size="lg"
-                                />
+                                <ProductPriceDisplay pricing={pricing} amount={unitPrice} size="lg" />
                             </div>
 
                             <div className="mt-8 space-y-6">
                                 {variations.map((variation) => (
                                     <div key={variation.name}>
-                                        <p className="mb-3 font-body text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+                                        <p className="font-body text-muted-foreground mb-3 text-xs font-semibold tracking-[0.2em] uppercase">
                                             {variation.name}
                                         </p>
                                         <div className="flex flex-wrap gap-2">
                                             {variation.options.map((option) => {
-                                                const isSelected =
-                                                    selectedVariants[variation.name] === option.value;
+                                                const isSelected = selectedVariants[variation.name] === option.value;
 
                                                 return (
                                                     <button
@@ -247,7 +201,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                                                             }))
                                                         }
                                                         className={cn(
-                                                            'min-w-12 rounded-md border px-4 py-2 font-body text-sm transition-all',
+                                                            'font-body min-w-12 rounded-md border px-4 py-2 text-sm transition-all',
                                                             isSelected
                                                                 ? 'border-primary bg-primary/10 text-foreground'
                                                                 : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground',
@@ -255,7 +209,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                                                     >
                                                         {option.label}
                                                         {option.price_modifier > 0 && (
-                                                            <span className="ml-1 text-xs text-muted-foreground">
+                                                            <span className="text-muted-foreground ml-1 text-xs">
                                                                 +${formatPrice(option.price_modifier)}
                                                             </span>
                                                         )}
@@ -267,25 +221,21 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                                 ))}
 
                                 <div>
-                                    <p className="mb-3 font-body text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-                                        Quantity
-                                    </p>
-                                    <div className="flex items-center rounded-md border border-border">
+                                    <p className="font-body text-muted-foreground mb-3 text-xs font-semibold tracking-[0.2em] uppercase">Quantity</p>
+                                    <div className="border-border flex items-center rounded-md border">
                                         <button
                                             type="button"
                                             onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                            className="flex h-10 w-10 items-center justify-center transition-colors hover:bg-muted"
+                                            className="hover:bg-muted flex h-10 w-10 items-center justify-center transition-colors"
                                             aria-label="Decrease quantity"
                                         >
                                             <Minus className="h-3.5 w-3.5" />
                                         </button>
-                                        <span className="w-10 text-center font-body text-sm">
-                                            {quantity}
-                                        </span>
+                                        <span className="font-body w-10 text-center text-sm">{quantity}</span>
                                         <button
                                             type="button"
                                             onClick={() => setQuantity(quantity + 1)}
-                                            className="flex h-10 w-10 items-center justify-center transition-colors hover:bg-muted"
+                                            className="hover:bg-muted flex h-10 w-10 items-center justify-center transition-colors"
                                             aria-label="Increase quantity"
                                         >
                                             <Plus className="h-3.5 w-3.5" />
@@ -294,55 +244,37 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                                 </div>
                             </div>
 
-                            <div className="mt-6 flex items-center justify-between rounded-md border border-border bg-muted/40 px-4 py-3">
-                                <span className="font-body text-sm text-muted-foreground">
+                            <div className="border-border bg-muted/40 mt-6 flex items-center justify-between rounded-md border px-4 py-3">
+                                <span className="font-body text-muted-foreground text-sm">
                                     Subtotal ({quantity} {quantity === 1 ? 'item' : 'items'})
                                 </span>
-                                <span className="font-body text-sm font-semibold text-foreground">
-                                    ${formatPrice(lineTotal)}
-                                </span>
+                                <span className="font-body text-foreground text-sm font-semibold">${formatPrice(lineTotal)}</span>
                             </div>
 
                             {product.available_for_pickup && inStock && (
-                                <div className="mt-4 flex items-center gap-2 rounded-md bg-primary/10 p-3">
-                                    <Clock className="h-4 w-4 text-primary" />
-                                    <span className="font-body text-sm font-medium text-foreground">
+                                <div className="bg-primary/10 mt-4 flex items-center gap-2 rounded-md p-3">
+                                    <Clock className="text-primary h-4 w-4" />
+                                    <span className="font-body text-foreground text-sm font-medium">
                                         Store Pickup: {product.preparation_time || 'Ready in 2 Hours'}
                                     </span>
                                 </div>
                             )}
 
                             <Button
-                                className="mt-6 h-12 w-full gap-2 font-body text-sm tracking-wide uppercase"
+                                className="font-body mt-6 h-12 w-full gap-2 text-sm tracking-wide uppercase"
                                 onClick={handleAddToCart}
                                 disabled={!inStock}
                             >
                                 <ShoppingBag className="h-4 w-4" />
-                                {inStock
-                                    ? `Add to Cart — $${formatPrice(lineTotal)}`
-                                    : 'Out of Stock'}
+                                {inStock ? `Add to Cart — $${formatPrice(lineTotal)}` : 'Out of Stock'}
                             </Button>
 
-                            <div className="mt-4 text-center">
-                                <Link
-                                    href="/contact?delivery=true"
-                                    className="inline-flex items-center gap-1.5 font-body text-xs text-muted-foreground transition-colors hover:text-primary"
-                                >
-                                    <Truck className="h-3.5 w-3.5" />
-                                    Need delivery? Request a quote for local drop-off
-                                </Link>
-                            </div>
-
-                            <div className="mt-8 border-t border-border">
+                            <div className="border-border mt-8 border-t">
                                 <DetailAccordion title="Description" defaultOpen>
-                                    {product.description ? (
-                                        <p>{product.description}</p>
-                                    ) : (
-                                        <p>No description available for this dish yet.</p>
-                                    )}
+                                    {product.description ? <p>{product.description}</p> : <p>No description available for this dish yet.</p>}
                                     {product.ingredients && (
                                         <div className="mt-4">
-                                            <p className="mb-1 font-body text-xs font-semibold tracking-wider text-foreground uppercase">
+                                            <p className="font-body text-foreground mb-1 text-xs font-semibold tracking-wider uppercase">
                                                 Ingredients
                                             </p>
                                             <p>{product.ingredients}</p>
@@ -350,25 +282,37 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                                     )}
                                     {product.serves && (
                                         <p className="mt-4">
-                                            <span className="font-medium text-foreground">Serves:</span>{' '}
-                                            {product.serves}
+                                            <span className="text-foreground font-medium">Serves:</span> {product.serves}
                                         </p>
                                     )}
                                 </DetailAccordion>
 
-                                <DetailAccordion title="Reviews (0)">
-                                    <div className="flex items-center gap-1 text-primary/40">
-                                        {Array.from({ length: 5 }).map((_, index) => (
-                                            <Star key={index} className="h-4 w-4 fill-current" />
-                                        ))}
+                                <DetailAccordion title={`Reviews (${reviewStats.count})`}>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1">
+                                            {Array.from({ length: 5 }).map((_, index) => (
+                                                <Star
+                                                    key={index}
+                                                    className={cn(
+                                                        'h-4 w-4',
+                                                        index < roundedAverage ? 'fill-primary text-primary' : 'text-primary/40 fill-none',
+                                                    )}
+                                                />
+                                            ))}
+                                        </div>
+                                        {reviewStats.average !== null && (
+                                            <span className="font-body text-muted-foreground text-xs">{reviewStats.average.toFixed(1)} out of 5</span>
+                                        )}
                                     </div>
-                                    <p className="mt-3">There are no reviews for this product yet.</p>
+
+                                    {reviewStats.count === 0 && <p className="mt-3">There are no reviews for this product yet.</p>}
+
                                     <Button
                                         variant="outline"
-                                        className="mt-4 h-10 font-body text-xs tracking-wide uppercase"
-                                        asChild
+                                        className="font-body mt-4 h-10 text-xs tracking-wide uppercase"
+                                        onClick={() => setReviewDialogOpen(true)}
                                     >
-                                        <Link href="/contact">Write a Review</Link>
+                                        Write a Review
                                     </Button>
                                 </DetailAccordion>
 
@@ -377,7 +321,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                                         {tags.map((tag) => (
                                             <span
                                                 key={tag}
-                                                className="rounded-sm border border-border bg-muted px-3 py-1 font-body text-xs text-foreground"
+                                                className="border-border bg-muted font-body text-foreground rounded-sm border px-3 py-1 text-xs"
                                             >
                                                 {tag}
                                             </span>
@@ -389,6 +333,8 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                     </div>
                 </div>
             </div>
+
+            <WriteReviewDialog productId={product.id} productName={product.name} open={reviewDialogOpen} onOpenChange={setReviewDialogOpen} />
         </AppLayout>
     );
 }

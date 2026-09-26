@@ -1,6 +1,8 @@
+import Recaptcha from '@/components/recaptcha';
 import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useRef } from 'react';
+import type ReCAPTCHA from 'react-google-recaptcha';
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -14,6 +16,7 @@ interface LoginForm {
     email: string;
     password: string;
     remember: boolean;
+    recaptcha: string;
 }
 
 interface LoginProps {
@@ -23,24 +26,34 @@ interface LoginProps {
 
 export default function Login({ status, canResetPassword }: LoginProps) {
     const { data, setData, post, processing, errors, reset } = useForm<LoginForm>({
+        recaptcha: '',
         email: '',
         password: '',
         remember: false,
     });
 
+    const recaptchaRef = useRef<ReCAPTCHA>(null);
+    const resetCaptcha = () => {
+        recaptchaRef.current?.reset();
+        setData('recaptcha', '');
+    };
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post(route('login'), {
-            onFinish: () => reset('password'),
+            onFinish: () => {
+                reset('password');
+                resetCaptcha();
+            },
         });
     };
 
     return (
-        <AuthLayout title="Log in to your account" description="Enter your email and password below to log in">
+        <AuthLayout wide title="Log in to your account" description="Enter your email and password below to log in">
             <Head title="Log in" />
 
-            <form className="flex flex-col gap-6" onSubmit={submit}>
-                <div className="grid gap-6">
+            <form className="flex flex-col gap-4" onSubmit={submit}>
+                <div className="grid gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
                         <Label htmlFor="email">Email address</Label>
                         <Input
@@ -58,14 +71,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                     </div>
 
                     <div className="grid gap-2">
-                        <div className="flex items-center">
-                            <Label htmlFor="password">Password</Label>
-                            {canResetPassword && (
-                                <TextLink href={route('password.request')} className="ml-auto text-sm" tabIndex={5}>
-                                    Forgot password?
-                                </TextLink>
-                            )}
-                        </div>
+                        <Label htmlFor="password">Password</Label>
                         <Input
                             id="password"
                             type="password"
@@ -79,18 +85,31 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                         <InputError message={errors.password} />
                     </div>
 
-                    <div className="flex items-center space-x-3">
-                        <Checkbox
-                            id="remember"
-                            name="remember"
-                            tabIndex={3}
-                            checked={data.remember}
-                            onCheckedChange={(checked) => setData('remember', checked === true)}
-                        />
-                        <Label htmlFor="remember">Remember me</Label>
+                    <div className="flex items-center justify-between sm:col-span-2">
+                        <div className="flex items-center space-x-3">
+                            <Checkbox
+                                id="remember"
+                                name="remember"
+                                tabIndex={3}
+                                checked={data.remember}
+                                onCheckedChange={(checked) => setData('remember', checked === true)}
+                            />
+                            <Label htmlFor="remember">Remember me</Label>
+                        </div>
+                        {canResetPassword && (
+                            <TextLink href={route('password.request')} className="text-sm" tabIndex={5}>
+                                Forgot password?
+                            </TextLink>
+                        )}
                     </div>
 
-                    <Button type="submit" className="mt-4 w-full" tabIndex={4} disabled={processing}>
+                    <Recaptcha
+                        ref={recaptchaRef}
+                        onChange={(token) => setData('recaptcha', token)}
+                        error={errors.recaptcha}
+                        className="sm:col-span-2"
+                    />
+                    <Button type="submit" className="w-full sm:col-span-2" tabIndex={4} disabled={processing}>
                         {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
                         Log in
                     </Button>

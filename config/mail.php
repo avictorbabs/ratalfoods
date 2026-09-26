@@ -113,4 +113,19 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Order Notification Recipients
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated list of addresses that receive a copy of every new
+    | order. When empty, the store email from the store settings is used.
+    |
+    */
+
+    'order_notifications' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('ORDER_NOTIFICATION_EMAILS', ''))
+    ))),
+
 ];

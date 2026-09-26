@@ -2,28 +2,38 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ConfirmStripePayment;
+use App\Actions\SendOrderNotifications;
 use App\Enums\CollectionMethod;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Http\Requests\StoreOrderRequest;
+use App\Models\AbandonedCart;
+use App\Models\Coupon;
 use App\Models\DeliveryFee;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\StoreSetting;
+use App\Support\CouponException;
+use App\Support\GuestSignup;
+use App\Support\Loyalty;
+use App\Support\LoyaltyException;
+use App\Support\RecurringOrderException;
+use App\Support\RecurringOrders;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Stripe\Checkout\Session as StripeSession;
+use Stripe\Coupon as StripeCoupon;
 use Stripe\Stripe;
 use Symfony\Component\HttpFoundation\Response;
 
 class OrderController extends Controller
 {
-    public function store(StoreOrderRequest $request): RedirectResponse|Response
+    public function store(StoreOrderRequest $request, SendOrderNotifications $notifications): RedirectResponse|Response
     {
         $paymentMethod = $request->validated('payment_method');
         $order = $this->createOrder($request);
@@ -32,12 +42,12 @@ class OrderController extends Controller
             return $this->redirectToStripe($order);
         }
 
-        $this->sendOrderEmails($order);
+        $notifications->handle($order);
 
         return $this->redirectOrderComplete($order);
     }
 
-    public function stripeSuccess(Request $request): RedirectResponse
+    public function stripeSuccess(Request $request, ConfirmStripePayment $confirmPayment): RedirectResponse
     {
         $sessionId = $request->string('session_id')->toString();
 
@@ -65,21 +75,12 @@ class OrderController extends Controller
             ]);
         }
 
-        $orderId = $session->metadata['order_id'] ?? null;
-        $order = $orderId ? Order::query()->with('items')->find($orderId) : null;
+        $order = $confirmPayment->handle($session);
 
-        if (! $order || $order->stripe_session_id !== $sessionId) {
+        if (! $order) {
             return redirect()->route('checkout')->withErrors([
                 'payment' => 'Order payment could not be matched.',
             ]);
-        }
-
-        if ($session->payment_status === 'paid' && $order->payment_status !== PaymentStatus::Paid) {
-            $order->update([
-                'payment_status' => PaymentStatus::Paid,
-                'status' => OrderStatus::PaymentConfirmed,
-            ]);
-            $this->sendOrderEmails($order->fresh(['items']), paidOnline: true);
         }
 
         return $this->redirectOrderComplete($order->fresh(['items']));
@@ -159,8 +160,48 @@ class OrderController extends Controller
                 ];
             }
 
-            $tax = round($subtotal * ((float) $settings->tax_rate / 100), 2);
-            $total = round($subtotal + $tax + $deliveryFee, 2);
+            $discount = 0.0;
+            $coupon = null;
+
+            if ($couponCode = $request->validated('coupon_code')) {
+                try {
+                    $coupon = Coupon::resolveForOrder(
+                        $couponCode,
+                        (float) $subtotal,
+                        (string) $request->validated('customer_email'),
+                        $request->user()?->id,
+                        lock: true,
+                    );
+                } catch (CouponException $exception) {
+                    throw ValidationException::withMessages(['coupon_code' => $exception->getMessage()]);
+                }
+
+                $discount = $coupon->discountFor((float) $subtotal);
+            }
+
+            $loyaltyPoints = 0;
+            $loyaltyDiscount = 0.0;
+
+            if ($request->boolean('use_points')) {
+                $user = $request->user();
+
+                if (! $user || ! $user->hasVerifiedEmail()) {
+                    throw ValidationException::withMessages(['use_points' => 'Please log in with a verified account to use your points.']);
+                }
+
+                $redeemable = Loyalty::redeemable($user, (float) $subtotal - $discount);
+
+                if ($redeemable['points'] === 0) {
+                    throw ValidationException::withMessages(['use_points' => 'You do not have enough points to use on this order.']);
+                }
+
+                $loyaltyPoints = $redeemable['points'];
+                $loyaltyDiscount = $redeemable['discount'];
+            }
+
+            $taxable = $subtotal - $discount - $loyaltyDiscount;
+            $tax = round($taxable * ((float) $settings->tax_rate / 100), 2);
+            $total = round($taxable + $tax + $deliveryFee, 2);
 
             $order = Order::query()->create([
                 'user_id' => $request->user()?->id,
@@ -168,6 +209,11 @@ class OrderController extends Controller
                 'customer_email' => $request->validated('customer_email'),
                 'customer_phone' => $request->validated('customer_phone'),
                 'subtotal' => $subtotal,
+                'discount' => $discount,
+                'loyalty_points_redeemed' => $loyaltyPoints,
+                'loyalty_discount' => $loyaltyDiscount,
+                'coupon_id' => $coupon?->id,
+                'coupon_code' => $coupon?->code,
                 'tax' => $tax,
                 'delivery_fee' => $deliveryFee,
                 'delivery_zone' => $deliveryZone,
@@ -183,6 +229,41 @@ class OrderController extends Controller
             ]);
 
             $order->items()->createMany($lineItems);
+
+            if ($loyaltyPoints > 0) {
+                try {
+                    Loyalty::redeem($request->user(), $order, $loyaltyPoints);
+                } catch (LoyaltyException $exception) {
+                    throw ValidationException::withMessages(['use_points' => $exception->getMessage()]);
+                }
+            }
+
+            if ($request->filled('repeat')) {
+                $user = $request->user();
+
+                if (! $user || ! $user->hasVerifiedEmail()) {
+                    throw ValidationException::withMessages(['repeat' => 'Please log in with a verified account to repeat an order.']);
+                }
+
+                if ($paymentMethod !== 'cash_on_delivery') {
+                    throw ValidationException::withMessages(['repeat' => 'Repeat orders are pay on pickup or delivery for now. Please choose that payment option.']);
+                }
+
+                try {
+                    RecurringOrders::createFromCheckout($user, $order, [
+                        'frequency' => $request->validated('repeat'),
+                        'service_date' => $method === CollectionMethod::Pickup ? $request->validated('pickup_date') : $request->validated('delivery_date'),
+                        'ends_on' => $request->validated('repeat_until'),
+                        'pickup_time' => $request->validated('pickup_time'),
+                        'delivery_time' => $request->validated('delivery_time'),
+                        'items' => $request->validated('items'),
+                    ]);
+                } catch (RecurringOrderException $exception) {
+                    throw ValidationException::withMessages(['repeat' => $exception->getMessage()]);
+                }
+            }
+
+            AbandonedCart::query()->whereRaw('lower(email) = ?', [strtolower((string) $request->validated('customer_email'))])->delete();
 
             return $order->load('items');
         });
@@ -239,11 +320,28 @@ class OrderController extends Controller
             ];
         }
 
+        $discounts = [];
+
         try {
+            $totalDiscount = (float) $order->discount + (float) $order->loyalty_discount;
+
+            if ($totalDiscount > 0) {
+                // Order totals apply discounts before tax, so a one-off amount-off
+                // coupon makes Stripe's total match ours exactly.
+                $stripeCoupon = StripeCoupon::create([
+                    'amount_off' => (int) round($totalDiscount * 100),
+                    'currency' => 'cad',
+                    'duration' => 'once',
+                    'name' => $order->coupon_code ?: 'Discount',
+                ]);
+                $discounts[] = ['coupon' => $stripeCoupon->id];
+            }
+
             $session = StripeSession::create([
                 'mode' => 'payment',
                 'customer_email' => $order->customer_email,
                 'line_items' => $lineItems,
+                ...($discounts !== [] ? ['discounts' => $discounts] : []),
                 'success_url' => route('orders.stripe.success').'?session_id={CHECKOUT_SESSION_ID}',
                 'cancel_url' => route('orders.stripe.cancel'),
                 'metadata' => [
@@ -266,57 +364,6 @@ class OrderController extends Controller
         return Inertia::location($session->url);
     }
 
-    private function sendOrderEmails(Order $order, bool $paidOnline = false): void
-    {
-        $itemsList = $order->items
-            ->map(fn ($item) => "{$item->product_name} x{$item->quantity} — $".number_format((float) $item->price * $item->quantity, 2))
-            ->join("\n");
-
-        $methodLabel = $order->collection_method === CollectionMethod::Pickup
-            ? 'Store Pickup — '.($order->pickup_time ?: 'TBD')
-            : 'Delivery — '.($order->delivery_time_preference ?: 'Scheduled');
-
-        $paymentLabel = match ($order->payment_method) {
-            'stripe' => $paidOnline ? 'Paid online (Stripe)' : 'Pay online (Stripe)',
-            default => $order->collection_method === CollectionMethod::Pickup
-                ? 'Cash on delivery / pay at pickup'
-                : 'Cash on delivery',
-        };
-
-        $customerBody = "Hi {$order->customer_name},\n\n"
-            ."Thank you for your order with Ratal Foods!\n\n"
-            ."========== ORDER INVOICE ==========\n"
-            ."Order #: {$order->order_number}\n"
-            ."Collection: {$methodLabel}\n"
-            ."Payment: {$paymentLabel}\n\n"
-            ."Items:\n{$itemsList}\n\n"
-            .'Subtotal: $'.number_format((float) $order->subtotal, 2)."\n"
-            .'Tax: $'.number_format((float) $order->tax, 2)."\n"
-            .'Delivery: $'.number_format((float) $order->delivery_fee, 2)
-            .($order->delivery_zone ? " ({$order->delivery_zone})" : '')."\n"
-            .'Total: $'.number_format((float) $order->total, 2)."\n"
-            ."===================================\n\n"
-            ."Please keep this email for your records. We may call you if further clarification is needed.\n\n"
-            ."Ratal Foods\n226-348-7156\nWindsor, ON";
-
-        try {
-            Mail::raw($customerBody, function ($message) use ($order): void {
-                $message->to($order->customer_email)
-                    ->subject("Ratal Foods — Order Invoice #{$order->order_number}");
-            });
-
-            Mail::raw(
-                "New order received!\n\nOrder #{$order->order_number}\nCustomer: {$order->customer_name}\nEmail: {$order->customer_email}\nPhone: {$order->customer_phone}\n\n{$itemsList}\n\nSubtotal: $".number_format((float) $order->subtotal, 2)."\nTax: $".number_format((float) $order->tax, 2)."\nDelivery: $".number_format((float) $order->delivery_fee, 2).($order->delivery_zone ? " ({$order->delivery_zone})" : '')."\nTotal: $".number_format((float) $order->total, 2)."\nMethod: {$methodLabel}\nPayment: {$paymentLabel}\nNotes: ".($order->notes ?: 'None'),
-                function ($message) use ($order): void {
-                    $message->to('info@ratalfoods.ca')
-                        ->subject("New Order #{$order->order_number}");
-                }
-            );
-        } catch (\Throwable $exception) {
-            report($exception);
-        }
-    }
-
     private function redirectOrderComplete(Order $order): RedirectResponse
     {
         return redirect()
@@ -324,6 +371,10 @@ class OrderController extends Controller
             ->with('orderComplete', [
                 'order_number' => $order->order_number,
                 'subtotal' => (float) $order->subtotal,
+                'discount' => (float) $order->discount,
+                'loyalty_discount' => (float) $order->loyalty_discount,
+                'loyalty_points_redeemed' => (int) $order->loyalty_points_redeemed,
+                'coupon_code' => $order->coupon_code,
                 'tax' => (float) $order->tax,
                 'delivery_fee' => (float) $order->delivery_fee,
                 'delivery_zone' => $order->delivery_zone,
@@ -333,6 +384,8 @@ class OrderController extends Controller
                 'customer_email' => $order->customer_email,
                 'pickup_time' => $order->pickup_time,
                 'payment_method' => $order->payment_method,
+                'tracking_url' => $order->tracking_url,
+                'guest_signup' => GuestSignup::prompt(auth()->user(), $order->customer_name, $order->customer_email),
             ]);
     }
 }

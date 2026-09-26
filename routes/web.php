@@ -1,18 +1,24 @@
 <?php
 
-use App\Http\Controllers\Admin\BookingController as AdminBookingController;
+use App\Http\Controllers\AbandonedCartController;
 use App\Http\Controllers\Admin\BlogController as AdminBlogController;
+use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
-use App\Http\Controllers\Admin\DeliveryFeeController as AdminDeliveryFeeController;
+use App\Http\Controllers\Admin\CouponController as AdminCouponController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DeliveryFeeController as AdminDeliveryFeeController;
 use App\Http\Controllers\Admin\GalleryController as AdminGalleryController;
+use App\Http\Controllers\Admin\LoyaltyController as AdminLoyaltyController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\CouponController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderTrackingController;
+use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\Public\AboutController;
 use App\Http\Controllers\Public\BlogController;
 use App\Http\Controllers\Public\BookingsPageController;
@@ -21,12 +27,16 @@ use App\Http\Controllers\Public\ContactPageController;
 use App\Http\Controllers\Public\GalleryPageController;
 use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\MenuController;
+use App\Http\Controllers\RecurringOrderController;
+use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\UnsubscribeController;
 use App\Http\Controllers\UserDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
 Route::get('/menu/{product}', [MenuController::class, 'show'])->name('menu.show');
+Route::post('/menu/{product}/reviews', [ProductReviewController::class, 'store'])->name('menu.reviews.store');
 Route::get('/about', AboutController::class)->name('about');
 Route::get('/gallery', GalleryPageController::class)->name('gallery');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
@@ -37,12 +47,29 @@ Route::get('/checkout', CheckoutPageController::class)->name('checkout');
 Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
 Route::get('/orders/stripe/success', [OrderController::class, 'stripeSuccess'])->name('orders.stripe.success');
 Route::get('/orders/stripe/cancel', [OrderController::class, 'stripeCancel'])->name('orders.stripe.cancel');
+Route::get('/orders/track/{token}', OrderTrackingController::class)->middleware('throttle:60,1')->name('orders.track');
+Route::post('/stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 Route::get('/bookings', BookingsPageController::class)->name('bookings');
 Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
 Route::post('/newsletter', [NewsletterController::class, 'store'])->name('newsletter.store');
+Route::post('/coupons/validate', [CouponController::class, 'validateCode'])->middleware('throttle:30,1')->name('coupons.validate');
+Route::post('/cart/capture', [AbandonedCartController::class, 'capture'])->middleware('throttle:30,1')->name('cart.capture');
+Route::get('/cart/recover/{token}', [AbandonedCartController::class, 'recover'])->name('cart.recover');
+Route::get('/unsubscribe/{email}', UnsubscribeController::class)->middleware(['signed', 'throttle:20,1'])->name('unsubscribe');
+Route::get('/recurring/{recurring}/skip/{date}', [RecurringOrderController::class, 'skipPage'])->middleware(['signed', 'throttle:20,1'])->name('recurring.skip');
+Route::post('/recurring/{recurring}/skip/{date}', [RecurringOrderController::class, 'skipConfirm'])->middleware(['signed', 'throttle:20,1'])->name('recurring.skip.confirm');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', UserDashboardController::class)->name('dashboard');
+    Route::get('/dashboard/orders', [UserDashboardController::class, 'orders'])->name('dashboard.orders');
+    Route::get('/dashboard/bookings', [UserDashboardController::class, 'bookings'])->name('dashboard.bookings');
+    Route::get('/dashboard/points', [UserDashboardController::class, 'points'])->name('dashboard.points');
+    Route::get('/dashboard/recurring', [RecurringOrderController::class, 'index'])->name('dashboard.recurring');
+    Route::post('/dashboard/recurring/{recurring}/pause', [RecurringOrderController::class, 'pause'])->name('dashboard.recurring.pause');
+    Route::post('/dashboard/recurring/{recurring}/resume', [RecurringOrderController::class, 'resume'])->name('dashboard.recurring.resume');
+    Route::post('/dashboard/recurring/{recurring}/cancel', [RecurringOrderController::class, 'cancel'])->name('dashboard.recurring.cancel');
+    Route::post('/dashboard/recurring/{recurring}/skip', [RecurringOrderController::class, 'skipNext'])->name('dashboard.recurring.skip');
+    Route::get('/dashboard/orders/{order}/reorder', [UserDashboardController::class, 'reorder'])->name('dashboard.orders.reorder');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -72,6 +99,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
     Route::patch('/orders/{order}', [AdminOrderController::class, 'updateStatus'])->name('orders.update-status');
     Route::delete('/orders/{order}', [AdminOrderController::class, 'destroy'])->name('orders.destroy');
+    Route::get('/loyalty', [AdminLoyaltyController::class, 'index'])->name('loyalty.index');
+    Route::put('/loyalty', [AdminLoyaltyController::class, 'update'])->name('loyalty.update');
+    Route::post('/loyalty/adjust', [AdminLoyaltyController::class, 'adjust'])->name('loyalty.adjust');
+    Route::get('/coupons', [AdminCouponController::class, 'index'])->name('coupons.index');
+    Route::post('/coupons', [AdminCouponController::class, 'store'])->name('coupons.store');
+    Route::put('/coupons/welcome-offer', [AdminCouponController::class, 'updateWelcome'])->name('coupons.welcome');
+    Route::put('/coupons/winback', [AdminCouponController::class, 'updateWinback'])->name('coupons.winback');
+    Route::put('/coupons/{coupon}', [AdminCouponController::class, 'update'])->name('coupons.update');
+    Route::delete('/coupons/{coupon}', [AdminCouponController::class, 'destroy'])->name('coupons.destroy');
     Route::get('/delivery-fees', [AdminDeliveryFeeController::class, 'index'])->name('delivery-fees.index');
     Route::post('/delivery-fees', [AdminDeliveryFeeController::class, 'store'])->name('delivery-fees.store');
     Route::put('/delivery-fees/{deliveryFee}', [AdminDeliveryFeeController::class, 'update'])->name('delivery-fees.update');

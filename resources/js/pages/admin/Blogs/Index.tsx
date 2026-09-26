@@ -164,7 +164,7 @@ export default function BlogIndex({ posts, filters }: BlogIndexProps) {
                     </Button>
                 </div>
 
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_200px]">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -193,7 +193,7 @@ export default function BlogIndex({ posts, filters }: BlogIndexProps) {
                     )}
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+                <div className="overflow-x-auto rounded-xl border border-border bg-white shadow-sm">
                     <table className="w-full min-w-[840px]">
                         <thead>
                             <tr className="border-b border-border bg-muted/40">

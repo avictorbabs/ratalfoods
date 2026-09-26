@@ -1,4 +1,4 @@
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/layouts/dashboard-layout';
 import { formatPrice } from '@/lib/price';
-import type { SharedData } from '@/types/ratalfoods';
 
 type DeliveryFeeRow = {
     id: number;
@@ -41,7 +40,6 @@ const emptyForm = {
 };
 
 export default function DeliveryFeesIndex({ fees, filters }: DeliveryFeesIndexProps) {
-    const { flash } = usePage<SharedData>().props;
     const [search, setSearch] = useState(filters.search);
     const [editorOpen, setEditorOpen] = useState(false);
     const [editing, setEditing] = useState<DeliveryFeeRow | null>(null);
@@ -141,13 +139,7 @@ export default function DeliveryFeesIndex({ fees, filters }: DeliveryFeesIndexPr
             <Head title="Delivery Fees" />
 
             <div className="space-y-6">
-                {flash.success && (
-                    <div className="rounded-md border border-accent/20 bg-accent/10 px-4 py-3 font-body text-sm text-accent">
-                        {flash.success}
-                    </div>
-                )}
-
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
                     <label
                         htmlFor="delivery-fee-search"
                         className="mb-1.5 block font-body text-xs font-medium uppercase tracking-wider text-muted-foreground"
@@ -171,7 +163,7 @@ export default function DeliveryFeesIndex({ fees, filters }: DeliveryFeesIndexPr
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-border bg-card shadow-sm">
+                <div className="rounded-xl border border-border bg-white shadow-sm">
                     <div className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <h2 className="font-heading text-lg text-foreground">
                             Delivery Zones ({fees.length})
@@ -281,7 +273,7 @@ export default function DeliveryFeesIndex({ fees, filters }: DeliveryFeesIndexPr
 
                     <form onSubmit={submit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="zone-name">Zone name</Label>
+                            <Label htmlFor="zone-name" required>Zone name</Label>
                             <Input
                                 id="zone-name"
                                 value={data.name}
@@ -295,7 +287,7 @@ export default function DeliveryFeesIndex({ fees, filters }: DeliveryFeesIndexPr
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="zone-terms">Match terms</Label>
+                            <Label htmlFor="zone-terms" required>Match terms</Label>
                             <Textarea
                                 id="zone-terms"
                                 value={data.match_terms}
@@ -310,7 +302,7 @@ export default function DeliveryFeesIndex({ fees, filters }: DeliveryFeesIndexPr
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="zone-fee">Fee (CAD)</Label>
+                            <Label htmlFor="zone-fee" required>Fee (CAD)</Label>
                             <Input
                                 id="zone-fee"
                                 type="number"

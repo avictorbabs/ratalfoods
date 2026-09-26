@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\Recaptcha;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreContactRequest extends FormRequest
@@ -18,6 +19,7 @@ class StoreContactRequest extends FormRequest
     {
         return [
             'type' => ['nullable', 'in:general,delivery'],
+            'recaptcha' => [new Recaptcha],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],

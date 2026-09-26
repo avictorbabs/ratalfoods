@@ -46,4 +46,26 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function typeLabel(): string
+    {
+        return match ($this->booking_type) {
+            BookingType::DineIn => 'Dine In',
+            BookingType::Catering => 'Catering',
+            BookingType::PrivateEvent => 'Private Event',
+        };
+    }
+
+    /**
+     * A human-readable line describing party size, worded for the booking
+     * type. Catering bookings don't collect a guest count, so this is null.
+     */
+    public function partySizeLine(): ?string
+    {
+        return match ($this->booking_type) {
+            BookingType::DineIn => "Tables: {$this->guests}",
+            BookingType::PrivateEvent => "Guests: {$this->guests}",
+            BookingType::Catering => null,
+        };
+    }
 }

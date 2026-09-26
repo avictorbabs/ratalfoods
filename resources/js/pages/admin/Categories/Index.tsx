@@ -148,7 +148,7 @@ export default function CategoriesIndex({ categories, filters }: CategoriesIndex
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
                     <label
                         htmlFor="category-search"
                         className="mb-1.5 block font-body text-xs font-medium uppercase tracking-wider text-muted-foreground"
@@ -178,7 +178,7 @@ export default function CategoriesIndex({ categories, filters }: CategoriesIndex
                     )}
                 </div>
 
-                <div className="rounded-xl border border-border bg-card shadow-sm">
+                <div className="rounded-xl border border-border bg-white shadow-sm">
                     <div className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <h2 className="font-heading text-lg text-foreground">
                             All Categories ({categories.total})

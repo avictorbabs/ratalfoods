@@ -2,29 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\SendOrderNotifications;
 use App\Http\Requests\StoreContactRequest;
+use App\Mail\ContactMessageReceived;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class ContactController extends Controller
 {
     public function store(StoreContactRequest $request): RedirectResponse
     {
-        $validated = $request->validated();
+        $validated = $request->safe()->except('recaptcha');
         $type = $validated['type'] ?? 'general';
 
-        $subject = $type === 'delivery'
-            ? "Delivery Request from {$validated['name']}"
-            : "Contact from {$validated['name']}";
-
-        $body = $type === 'delivery'
-            ? "Name: {$validated['name']}\nEmail: {$validated['email']}\nPhone: ".($validated['phone'] ?? 'N/A')."\nAddress: ".($validated['address'] ?? 'N/A')."\nPreferred Time: ".($validated['preferred_time'] ?? 'N/A')."\nMessage: {$validated['message']}"
-            : "Name: {$validated['name']}\nEmail: {$validated['email']}\nPhone: ".($validated['phone'] ?? 'N/A')."\nMessage: {$validated['message']}";
-
-        Mail::raw($body, function ($message) use ($validated, $subject): void {
-            $message->to('info@ratalfoods.ca')
-                ->replyTo($validated['email'], $validated['name'])
-                ->subject($subject);
+        defer(function () use ($validated): void {
+            try {
+                Mail::to(SendOrderNotifications::storeRecipients())
+                    ->send(new ContactMessageReceived($validated));
+            } catch (Throwable $exception) {
+                Log::error('Could not send contact message email', [
+                    'email' => $validated['email'] ?? null,
+                    'error' => $exception->getMessage(),
+                ]);
+                report($exception);
+            }
         });
 
         $successMessage = $type === 'delivery'

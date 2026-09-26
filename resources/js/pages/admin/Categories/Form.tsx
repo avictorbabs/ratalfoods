@@ -51,6 +51,7 @@ export default function CategoryForm({ category }: CategoryFormProps) {
     });
 
     const [imagePreview, setImagePreview] = useState<string | null>(category?.image_url ?? null);
+    const thumbnailRequired = !isEditing || !category?.image_url;
 
     useEffect(() => {
         if (slugManuallyEdited.current) {
@@ -110,10 +111,10 @@ export default function CategoryForm({ category }: CategoryFormProps) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
                         <div className="grid gap-6 lg:grid-cols-2">
                             <div>
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="name" required>Name</Label>
                                 <Input
                                     id="name"
                                     value={data.name}
@@ -127,7 +128,7 @@ export default function CategoryForm({ category }: CategoryFormProps) {
                             </div>
 
                             <div>
-                                <Label htmlFor="slug">Slug</Label>
+                                <Label htmlFor="slug" required>Slug</Label>
                                 <Input
                                     id="slug"
                                     value={data.slug}
@@ -179,10 +180,11 @@ export default function CategoryForm({ category }: CategoryFormProps) {
                             </div>
 
                             <div>
-                                <Label htmlFor="category_image">Thumbnail</Label>
+                                <Label htmlFor="category_image" required={thumbnailRequired}>Thumbnail</Label>
                                 <Input
                                     id="category_image"
                                     type="file"
+                                    required={thumbnailRequired}
                                     accept="image/jpeg,image/png,image/webp,image/gif"
                                     onChange={(event) =>
                                         handleImageChange(event.target.files?.[0] ?? null)

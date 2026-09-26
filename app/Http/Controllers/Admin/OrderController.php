@@ -61,7 +61,10 @@ class OrderController extends Controller
             OrderStatus::Completed,
             OrderStatus::Delivered => PaymentStatus::Paid,
             OrderStatus::Refunded => PaymentStatus::Refunded,
-            OrderStatus::Cancelled => $order->payment_status,
+            OrderStatus::Ready,
+            OrderStatus::OutForDelivery,
+            OrderStatus::Cancelled,
+            OrderStatus::Disputed => $order->payment_status,
         };
 
         $order->update([

@@ -1,3 +1,4 @@
+import type { CartItem } from '@/lib/cart-store';
 export type Product = {
     id: number;
     name: string;
@@ -22,6 +23,19 @@ export type Product = {
     tags: string[] | null;
 };
 
+export type ProductReview = {
+    id: number;
+    customer_name: string;
+    rating: number;
+    comment: string;
+    created_at: string;
+};
+
+export type ProductReviewStats = {
+    count: number;
+    average: number | null;
+};
+
 export type ProductVariationOption = {
     value: string;
     label: string;
@@ -33,10 +47,7 @@ export type ProductVariation = {
     options: ProductVariationOption[];
 };
 
-export type SearchProduct = Pick<
-    Product,
-    'id' | 'name' | 'category' | 'price' | 'sale_price' | 'sale_starts_at' | 'sale_ends_at' | 'image_url'
->;
+export type SearchProduct = Pick<Product, 'id' | 'name' | 'category' | 'price' | 'sale_price' | 'sale_starts_at' | 'sale_ends_at' | 'image_url'>;
 
 export type ProductCategoryItem = {
     name: string;
@@ -77,6 +88,8 @@ export type User = {
 export type OrderComplete = {
     order_number: string;
     subtotal: number;
+    discount?: number;
+    coupon_code?: string | null;
     tax: number;
     delivery_fee?: number;
     delivery_zone?: string | null;
@@ -86,6 +99,8 @@ export type OrderComplete = {
     customer_email: string;
     pickup_time?: string | null;
     payment_method?: 'cash_on_delivery' | 'stripe' | null;
+    tracking_url?: string | null;
+    guest_signup?: { has_account: boolean } | null;
 };
 
 export type DeliveryFeeZone = {
@@ -239,10 +254,14 @@ export type SharedData = {
     storeSettings: StoreSettings;
     footerContent: FooterPageContent;
     searchProducts: SearchProduct[];
+    loyalty: { balance: number | null; points_per_dollar: number; point_value: number; min_redeem: number; max_percent: number } | null;
+    welcomeOffer: { headline: string; body: string | null; delay_seconds: number; percent: number } | null;
     flash: {
         success?: string | null;
         error?: string | null;
         orderComplete?: OrderComplete | null;
         bookingNumber?: string | null;
+        guestSignup?: { has_account: boolean } | null;
+        recoveredCart?: { items: CartItem[]; email: string; unavailable: string[] } | null;
     };
 };

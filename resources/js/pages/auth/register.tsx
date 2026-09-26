@@ -1,6 +1,8 @@
+import Recaptcha from '@/components/recaptcha';
 import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useRef } from 'react';
+import type ReCAPTCHA from 'react-google-recaptcha';
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -14,28 +16,39 @@ interface RegisterForm {
     email: string;
     password: string;
     password_confirmation: string;
+    recaptcha: string;
 }
 
-export default function Register() {
+export default function Register({ prefill }: { prefill?: { name: string; email: string } | null }) {
     const { data, setData, post, processing, errors, reset } = useForm<RegisterForm>({
-        name: '',
-        email: '',
+        recaptcha: '',
+        name: prefill?.name ?? '',
+        email: prefill?.email ?? '',
         password: '',
         password_confirmation: '',
     });
 
+    const recaptchaRef = useRef<ReCAPTCHA>(null);
+    const resetCaptcha = () => {
+        recaptchaRef.current?.reset();
+        setData('recaptcha', '');
+    };
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post(route('register'), {
-            onFinish: () => reset('password', 'password_confirmation'),
+            onFinish: () => {
+                reset('password', 'password_confirmation');
+                resetCaptcha();
+            },
         });
     };
 
     return (
-        <AuthLayout title="Create an account" description="Enter your details below to create your account">
+        <AuthLayout wide title="Create an account" description="Enter your details below to create your account">
             <Head title="Register" />
-            <form className="flex flex-col gap-6" onSubmit={submit}>
-                <div className="grid gap-6">
+            <form className="flex flex-col gap-4" onSubmit={submit}>
+                <div className="grid gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
                         <Label htmlFor="name">Name</Label>
                         <Input
@@ -50,7 +63,7 @@ export default function Register() {
                             disabled={processing}
                             placeholder="Full name"
                         />
-                        <InputError message={errors.name} className="mt-2" />
+                        <InputError message={errors.name} className="sm:col-span-2" />
                     </div>
 
                     <div className="grid gap-2">
@@ -101,7 +114,13 @@ export default function Register() {
                         <InputError message={errors.password_confirmation} />
                     </div>
 
-                    <Button type="submit" className="mt-2 w-full" tabIndex={5} disabled={processing}>
+                    <Recaptcha
+                        ref={recaptchaRef}
+                        onChange={(token) => setData('recaptcha', token)}
+                        error={errors.recaptcha}
+                        className="sm:col-span-2"
+                    />
+                    <Button type="submit" className="w-full sm:col-span-2" tabIndex={5} disabled={processing}>
                         {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
                         Create account
                     </Button>

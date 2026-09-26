@@ -17,7 +17,10 @@ export default function VerifyEmail({ status }: { status?: string }) {
     };
 
     return (
-        <AuthLayout title="Verify email" description="Please verify your email address by clicking on the link we just emailed to you.">
+        <AuthLayout
+            title="Verify email"
+            description="We emailed you a verification link. Once your email is verified, your dashboard opens and any orders or bookings you made with this address appear there."
+        >
             <Head title="Email verification" />
 
             {status === 'verification-link-sent' && (

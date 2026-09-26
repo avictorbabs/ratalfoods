@@ -68,7 +68,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
             <div className="space-y-6">
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-stretch">
-                <section className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm">
+                <section className="space-y-6 rounded-xl border border-border bg-white p-6 shadow-sm">
                     <HeadingSmall title="Profile information" description="Update your name and email address" />
 
                     <form onSubmit={submit} className="space-y-6">
@@ -138,7 +138,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                     </form>
                 </section>
 
-                <section className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-sm">
+                <section className="space-y-6 rounded-xl border border-border bg-white p-6 shadow-sm">
                     <HeadingSmall
                         title="Update password"
                         description="Ensure your account is using a long, random password to stay secure"
@@ -205,7 +205,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                 </section>
                 </div>
 
-                <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
                     <DeleteUser />
                 </section>
             </div>

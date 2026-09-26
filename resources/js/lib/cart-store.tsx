@@ -1,13 +1,6 @@
-import {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useState,
-    type PropsWithChildren,
-} from 'react';
-import type { Product } from '@/types/ratalfoods';
 import { getEffectiveBasePrice } from '@/lib/product-pricing';
+import type { Product } from '@/types/ratalfoods';
+import { createContext, useCallback, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 
 export type CartItem = {
     line_id: string;
@@ -34,6 +27,8 @@ type CartContextValue = {
     removeItem: (lineId: string) => void;
     updateQuantity: (lineId: string, quantity: number) => void;
     clearCart: () => void;
+    addLines: (lines: CartItem[]) => void;
+    replaceItems: (lines: CartItem[]) => void;
     itemCount: number;
     subtotal: number;
 };
@@ -89,19 +84,13 @@ export function CartProvider({ children }: PropsWithChildren) {
         const quantityToAdd = options?.quantity ?? 1;
         const price = options?.unitPrice ?? getEffectiveBasePrice(product);
         const lineId = buildLineId(product.id, options?.variantKey);
-        const productName = options?.variantLabel
-            ? `${product.name} (${options.variantLabel})`
-            : product.name;
+        const productName = options?.variantLabel ? `${product.name} (${options.variantLabel})` : product.name;
 
         setItems((prev) => {
             const existing = prev.find((item) => item.line_id === lineId);
 
             if (existing) {
-                return prev.map((item) =>
-                    item.line_id === lineId
-                        ? { ...item, quantity: item.quantity + quantityToAdd }
-                        : item,
-                );
+                return prev.map((item) => (item.line_id === lineId ? { ...item, quantity: item.quantity + quantityToAdd } : item));
             }
 
             return [
@@ -130,12 +119,31 @@ export function CartProvider({ children }: PropsWithChildren) {
             return;
         }
 
-        setItems((prev) =>
-            prev.map((item) => (item.line_id === lineId ? { ...item, quantity } : item)),
-        );
+        setItems((prev) => prev.map((item) => (item.line_id === lineId ? { ...item, quantity } : item)));
     }, []);
 
     const clearCart = useCallback(() => setItems([]), []);
+
+    // Merge lines (e.g. from a past order) into the cart, adding quantities for lines already there.
+    const addLines = useCallback((lines: CartItem[]) => {
+        setItems((prev) => {
+            const next = [...prev];
+
+            for (const line of lines) {
+                const index = next.findIndex((item) => item.line_id === line.line_id);
+
+                if (index >= 0) {
+                    next[index] = { ...next[index], quantity: next[index].quantity + line.quantity };
+                } else {
+                    next.push(line);
+                }
+            }
+
+            return next;
+        });
+    }, []);
+
+    const replaceItems = useCallback((lines: CartItem[]) => setItems(lines), []);
 
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -150,6 +158,8 @@ export function CartProvider({ children }: PropsWithChildren) {
                 removeItem,
                 updateQuantity,
                 clearCart,
+                addLines,
+                replaceItems,
                 itemCount,
                 subtotal,
             }}

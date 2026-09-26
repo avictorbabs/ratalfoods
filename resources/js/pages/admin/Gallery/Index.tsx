@@ -167,14 +167,15 @@ export default function GalleryAdminIndex({ items, filters }: GalleryAdminProps)
                     </p>
                 </div>
 
-                <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
                     <h2 className="font-heading text-lg text-foreground">Add Media</h2>
 
                     <form onSubmit={submit} className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <div>
-                            <Label htmlFor="title">Title</Label>
+                            <Label htmlFor="title" required>Title</Label>
                             <Input
                                 id="title"
+                                required
                                 value={data.title}
                                 onChange={(event) => setData('title', event.target.value)}
                                 className="mt-1.5"
@@ -216,10 +217,11 @@ export default function GalleryAdminIndex({ items, filters }: GalleryAdminProps)
                         </div>
 
                         <div className="lg:col-span-2">
-                            <Label htmlFor="media_file">Image or Video</Label>
+                            <Label htmlFor="media_file" required>Image or Video</Label>
                             <Input
                                 id="media_file"
                                 type="file"
+                                required
                                 accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
                                 onChange={(event) => setData('media_file', event.target.files?.[0] ?? null)}
                                 className="mt-1.5"
@@ -258,7 +260,7 @@ export default function GalleryAdminIndex({ items, filters }: GalleryAdminProps)
                     </form>
                 </section>
 
-                <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <h2 className="font-heading text-lg text-foreground">
                             Gallery Items ({items.total})

@@ -1,11 +1,13 @@
 import '../css/app.css';
 
-import { createInertiaApp } from '@inertiajs/react';
+import AppErrorBoundary from '@/components/app-error-boundary';
+import { CartProvider } from '@/lib/cart-store';
+import { FRIENDLY_GENERIC_ERROR, FRIENDLY_NETWORK_ERROR, notify } from '@/lib/notify';
+import { createInertiaApp, router } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
-import { route as ziggyRoute } from 'ziggy-js';
 import type { Config } from 'ziggy-js';
-import { CartProvider } from '@/lib/cart-store';
+import { route as ziggyRoute } from 'ziggy-js';
 import { initializeTheme } from './hooks/use-appearance';
 
 declare global {
@@ -32,7 +34,7 @@ const routeFallbacks: Record<string, string> = {
     'profile.edit': '/settings/profile',
     'profile.update': '/settings/profile',
     'profile.destroy': '/settings/profile',
-    'verification.send': '/verify-email',
+    'verification.send': '/email/verification-notification',
     logout: '/logout',
     dashboard: '/dashboard',
     'admin.dashboard': '/admin',
@@ -61,9 +63,11 @@ createInertiaApp({
         const root = createRoot(el);
 
         root.render(
-            <CartProvider>
-                <App {...props} />
-            </CartProvider>,
+            <AppErrorBoundary>
+                <CartProvider>
+                    <App {...props} />
+                </CartProvider>
+            </AppErrorBoundary>,
         );
     },
     progress: {
@@ -72,3 +76,15 @@ createInertiaApp({
 });
 
 initializeTheme();
+
+// A response Inertia cannot use (e.g. an HTML error page) or a dropped connection:
+// show a friendly toast instead of Inertia's raw error modal.
+router.on('invalid', (event) => {
+    event.preventDefault();
+    notify(FRIENDLY_GENERIC_ERROR);
+});
+
+router.on('exception', (event) => {
+    event.preventDefault();
+    notify(FRIENDLY_NETWORK_ERROR);
+});

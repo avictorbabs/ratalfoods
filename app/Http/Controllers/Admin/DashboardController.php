@@ -18,6 +18,8 @@ class DashboardController extends Controller
         $earningStatuses = [
             OrderStatus::Processing->value,
             OrderStatus::PaymentConfirmed->value,
+            OrderStatus::Ready->value,
+            OrderStatus::OutForDelivery->value,
             OrderStatus::Completed->value,
             OrderStatus::Delivered->value,
         ];

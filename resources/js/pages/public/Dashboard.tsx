@@ -1,159 +1,125 @@
-import { Head, Link, usePage } from '@inertiajs/react';
-import { CalendarDays, ShoppingBag } from 'lucide-react';
+import { BookingList, OrderList, type UserBooking, type UserOrder } from '@/components/dashboard/user-records';
+import { Button } from '@/components/ui/button';
 import DashboardLayout from '@/layouts/dashboard-layout';
-import { formatPrice } from '@/lib/price';
 import type { SharedData } from '@/types/ratalfoods';
-
-type Order = {
-    id: number;
-    order_number: string;
-    total: string;
-    status: string;
-    created_at: string;
-};
-
-type Booking = {
-    id: number;
-    booking_number: string;
-    date: string;
-    time: string;
-    guests: number;
-    status: string;
-};
+import { Head, Link, usePage } from '@inertiajs/react';
+import { Award, CalendarDays, ShoppingBag } from 'lucide-react';
 
 type DashboardProps = {
-    orders: Order[];
-    bookings: Booking[];
+    orders: UserOrder[];
+    bookings: UserBooking[];
+    orderCount: number;
+    bookingCount: number;
 };
 
-export default function Dashboard({ orders, bookings }: DashboardProps) {
-    const { auth } = usePage<SharedData>().props;
+function StatCard({ label, value, icon: Icon }: { label: string; value: number; icon: typeof ShoppingBag }) {
+    return (
+        <div className="border-border rounded-xl border bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+                <div className="bg-primary/15 text-primary flex h-10 w-10 items-center justify-center rounded-lg">
+                    <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                    <p className="font-body text-muted-foreground text-sm">{label}</p>
+                    <p className="font-heading text-2xl">{value}</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SectionHeader({
+    title,
+    total,
+    shown,
+    viewAllHref,
+    actionLabel,
+    actionHref,
+}: {
+    title: string;
+    total: number;
+    shown: number;
+    viewAllHref: string;
+    actionLabel: string;
+    actionHref: string;
+}) {
+    return (
+        <div className="border-border flex items-center justify-between border-b px-6 py-4">
+            <h2 className="font-heading text-xl">{title}</h2>
+            <div className="font-body flex items-center gap-4 text-sm">
+                {total > shown && (
+                    <Link href={viewAllHref} className="text-foreground font-medium hover:underline">
+                        View all ({total})
+                    </Link>
+                )}
+                <Button size="sm" asChild>
+                    <Link href={actionHref}>{actionLabel}</Link>
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+export default function Dashboard({ orders, bookings, orderCount, bookingCount }: DashboardProps) {
+    const { auth, loyalty } = usePage<SharedData>().props;
     const firstName = auth.user?.name.split(' ')[0] ?? 'there';
 
     return (
-        <DashboardLayout
-            variant="user"
-            title={`Welcome, ${firstName}`}
-            subtitle="Manage your orders and bookings"
-        >
+        <DashboardLayout variant="user" title={`Welcome, ${firstName}`} subtitle="Manage your orders and bookings">
             <Head title="My Account" />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                            <ShoppingBag className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <p className="font-body text-sm text-muted-foreground">Total Orders</p>
-                            <p className="font-heading text-2xl">{orders.length}</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                            <CalendarDays className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <p className="font-body text-sm text-muted-foreground">Total Bookings</p>
-                            <p className="font-heading text-2xl">{bookings.length}</p>
-                        </div>
-                    </div>
-                </div>
+            <div className={`grid gap-4 sm:grid-cols-2 ${loyalty && loyalty.balance !== null ? 'lg:grid-cols-3' : ''}`}>
+                <StatCard label="Total Orders" value={orderCount} icon={ShoppingBag} />
+                <StatCard label="Total Bookings" value={bookingCount} icon={CalendarDays} />
+                {loyalty && loyalty.balance !== null && (
+                    <Link href="/dashboard/points" className="block transition hover:opacity-90">
+                        <StatCard label="Loyalty points" value={loyalty.balance} icon={Award} />
+                    </Link>
+                )}
             </div>
 
-            <section id="orders" className="mt-8 rounded-xl border border-border bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                    <h2 className="font-heading text-xl">My Orders</h2>
-                    <Link
-                        href="/menu"
-                        className="font-body text-sm text-primary hover:underline"
-                    >
-                        Order again
-                    </Link>
-                </div>
-                {orders.length === 0 ? (
-                    <div className="px-6 py-8">
-                        <p className="font-body text-sm text-muted-foreground">No orders yet.</p>
-                        <Link
-                            href="/menu"
-                            className="mt-3 inline-block font-body text-sm text-primary hover:underline"
-                        >
-                            Browse the menu
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="divide-y divide-border">
-                        {orders.map((order) => (
-                            <div
-                                key={order.id}
-                                className="flex flex-col gap-1 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                                <div>
-                                    <p className="font-body text-sm font-medium">{order.order_number}</p>
-                                    <p className="font-body text-xs text-muted-foreground">
-                                        {new Date(order.created_at).toLocaleDateString('en-CA', {
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: 'numeric',
-                                        })}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <span className="rounded-sm bg-muted px-2 py-1 font-body text-xs uppercase tracking-wider text-muted-foreground">
-                                        {order.status}
-                                    </span>
-                                    <span className="font-body text-sm font-semibold text-primary">
-                                        ${formatPrice(order.total)}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+            <section className="border-border mt-8 rounded-xl border bg-white shadow-sm">
+                <SectionHeader
+                    title="My Orders"
+                    total={orderCount}
+                    shown={orders.length}
+                    viewAllHref="/dashboard/orders"
+                    actionLabel="Order again"
+                    actionHref="/menu"
+                />
+                <OrderList
+                    orders={orders}
+                    empty={
+                        <>
+                            <p className="font-body text-muted-foreground text-sm">No orders yet.</p>
+                            <Link href="/menu" className="font-body text-primary mt-3 inline-block text-sm hover:underline">
+                                Browse the menu
+                            </Link>
+                        </>
+                    }
+                />
             </section>
 
-            <section id="bookings" className="mt-8 rounded-xl border border-border bg-white shadow-sm">
-                <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                    <h2 className="font-heading text-xl">My Bookings</h2>
-                    <Link
-                        href="/bookings"
-                        className="font-body text-sm text-primary hover:underline"
-                    >
-                        New booking
-                    </Link>
-                </div>
-                {bookings.length === 0 ? (
-                    <div className="px-6 py-8">
-                        <p className="font-body text-sm text-muted-foreground">No bookings yet.</p>
-                        <Link
-                            href="/bookings"
-                            className="mt-3 inline-block font-body text-sm text-primary hover:underline"
-                        >
-                            Make a reservation
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="divide-y divide-border">
-                        {bookings.map((booking) => (
-                            <div
-                                key={booking.id}
-                                className="flex flex-col gap-1 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                                <div>
-                                    <p className="font-body text-sm font-medium">{booking.booking_number}</p>
-                                    <p className="font-body text-xs text-muted-foreground">
-                                        {booking.date} at {booking.time} · {booking.guests} guests
-                                    </p>
-                                </div>
-                                <span className="rounded-sm bg-muted px-2 py-1 font-body text-xs uppercase tracking-wider text-muted-foreground">
-                                    {booking.status}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                )}
+            <section className="border-border mt-8 rounded-xl border bg-white shadow-sm">
+                <SectionHeader
+                    title="My Bookings"
+                    total={bookingCount}
+                    shown={bookings.length}
+                    viewAllHref="/dashboard/bookings"
+                    actionLabel="New booking"
+                    actionHref="/bookings"
+                />
+                <BookingList
+                    bookings={bookings}
+                    empty={
+                        <>
+                            <p className="font-body text-muted-foreground text-sm">No bookings yet.</p>
+                            <Link href="/bookings" className="font-body text-primary mt-3 inline-block text-sm hover:underline">
+                                Make a reservation
+                            </Link>
+                        </>
+                    }
+                />
             </section>
         </DashboardLayout>
     );

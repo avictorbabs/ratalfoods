@@ -21,7 +21,7 @@ class StoreOrderRequest extends FormRequest
         return [
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_email' => ['required', 'email', 'max:255'],
-            'customer_phone' => ['nullable', 'string', 'max:50'],
+            'customer_phone' => ['required', 'string', 'max:50'],
             'collection_method' => ['required', Rule::enum(CollectionMethod::class)],
             'pickup_date' => ['required_if:collection_method,pickup', 'nullable', 'date', 'after_or_equal:today'],
             'pickup_time' => ['required_if:collection_method,pickup', 'nullable', 'string', 'max:20'],
@@ -30,6 +30,9 @@ class StoreOrderRequest extends FormRequest
             'delivery_time' => ['required_if:collection_method,delivery_request', 'nullable', 'string', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'payment_method' => ['required', 'in:cash_on_delivery,stripe'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'coupon_code' => ['nullable', 'string', 'max:64'],
+            'repeat' => ['nullable', 'in:weekly,biweekly'],
+            'repeat_until' => ['nullable', 'date'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],

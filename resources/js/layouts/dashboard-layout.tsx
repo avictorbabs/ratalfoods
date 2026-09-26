@@ -1,5 +1,6 @@
 import { PropsWithChildren } from 'react';
 import DashboardSidebar from '@/components/dashboard/dashboard-sidebar';
+import FlashToast from '@/components/flash-toast';
 import { AppShell } from '@/components/app-shell';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
@@ -18,6 +19,7 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
     return (
         <div className="dashboard-shell min-h-screen bg-secondary/30 font-body">
+            <FlashToast />
             <AppShell variant="sidebar">
                 <DashboardSidebar variant={variant} />
                 <SidebarInset className="bg-secondary/30">

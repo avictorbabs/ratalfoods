@@ -78,6 +78,11 @@ class Product extends Model
         return $this->belongsTo(Category::class, 'category_id');
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class);
+    }
+
     public function isSaleActive(?\DateTimeInterface $at = null): bool
     {
         $at ??= now();

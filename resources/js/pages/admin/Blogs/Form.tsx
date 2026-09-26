@@ -64,8 +64,9 @@ export default function BlogForm({ post }: BlogFormProps) {
     const isEditing = post !== null;
     const slugManuallyEdited = useRef(isEditing);
     const [coverPreview, setCoverPreview] = useState<string | null>(post?.image_url ?? null);
+    const featuredImageRequired = !isEditing || !post?.image_url;
 
-    const { data, setData, post: createPost, put, processing, errors } = useForm<FormData>({
+    const { data, setData, post: createPost, put, processing, errors, setError, clearErrors } = useForm<FormData>({
         title: post?.title ?? '',
         slug: post?.slug ?? '',
         excerpt: post?.excerpt ?? '',
@@ -86,6 +87,13 @@ export default function BlogForm({ post }: BlogFormProps) {
 
     const submit = (event: FormEvent) => {
         event.preventDefault();
+
+        if (data.content.trim() === '') {
+            setError('content', 'The content field is required.');
+            return;
+        }
+
+        clearErrors('content');
 
         if (isEditing && post) {
             put(`/admin/blogs/${post.id}`, {
@@ -122,10 +130,10 @@ export default function BlogForm({ post }: BlogFormProps) {
                 </div>
 
                 <form onSubmit={submit} className="space-y-6">
-                    <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
                         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                             <div>
-                                <Label htmlFor="title">Title</Label>
+                                <Label htmlFor="title" required>Title</Label>
                                 <Input
                                     id="title"
                                     value={data.title}
@@ -163,10 +171,11 @@ export default function BlogForm({ post }: BlogFormProps) {
                             </div>
 
                             <div>
-                                <Label htmlFor="published_at">Published At</Label>
+                                <Label htmlFor="published_at" required>Published At</Label>
                                 <Input
                                     id="published_at"
                                     type="datetime-local"
+                                    required
                                     value={data.published_at}
                                     onChange={(event) => setData('published_at', event.target.value)}
                                     className="mt-1.5"
@@ -177,10 +186,11 @@ export default function BlogForm({ post }: BlogFormProps) {
                             </div>
 
                             <div>
-                                <Label htmlFor="image">Featured Image</Label>
+                                <Label htmlFor="image" required={featuredImageRequired}>Featured Image</Label>
                                 <Input
                                     id="image"
                                     type="file"
+                                    required={featuredImageRequired}
                                     accept="image/jpeg,image/png,image/webp,image/gif"
                                     onChange={(event) => {
                                         const file = event.target.files?.[0] ?? null;
@@ -225,8 +235,8 @@ export default function BlogForm({ post }: BlogFormProps) {
                         </div>
                     </section>
 
-                    <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                        <Label htmlFor="content">Content</Label>
+                    <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+                        <Label htmlFor="content" required>Content</Label>
                         <RichTextEditor
                             id="content"
                             value={data.content}

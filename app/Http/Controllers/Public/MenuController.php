@@ -41,8 +41,18 @@ class MenuController extends Controller
     {
         abort_unless($product->is_active, 404);
 
+        $reviews = $product->reviews()
+            ->where('is_approved', true)
+            ->latest()
+            ->get();
+
         return Inertia::render('public/ProductDetail', [
             'product' => $product,
+            'reviews' => $reviews,
+            'reviewStats' => [
+                'count' => $reviews->count(),
+                'average' => $reviews->isNotEmpty() ? round($reviews->avg('rating'), 1) : null,
+            ],
         ]);
     }
 }

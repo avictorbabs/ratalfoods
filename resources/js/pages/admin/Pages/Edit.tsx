@@ -1,12 +1,12 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
-import { FormEvent, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/layouts/dashboard-layout';
-import type { PageSlug, SharedData } from '@/types/ratalfoods';
+import type { PageSlug } from '@/types/ratalfoods';
+import { Head, useForm } from '@inertiajs/react';
+import { Plus, Trash2 } from 'lucide-react';
+import { FormEvent, ReactNode } from 'react';
 
 type PageFormData = {
     content: Record<string, unknown>;
@@ -48,11 +48,7 @@ function asString(value: unknown): string {
     return typeof value === 'string' ? value : '';
 }
 
-function setPath(
-    root: Record<string, unknown>,
-    path: Array<string | number>,
-    value: unknown,
-): Record<string, unknown> {
+function setPath(root: Record<string, unknown>, path: Array<string | number>, value: unknown): Record<string, unknown> {
     const next = structuredClone(root);
     let cursor: unknown = next;
 
@@ -88,11 +84,13 @@ function setPath(
     return next;
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children, columns = 2 }: { title: string; children: ReactNode; columns?: 2 | 3 | 4 }) {
+    const grid = { 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4' }[columns];
+
     return (
-        <section className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
+        <section className="border-border space-y-4 rounded-xl border bg-white p-6 shadow-sm">
             <h2 className="font-heading text-lg tracking-tight">{title}</h2>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{children}</div>
+            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${grid}`}>{children}</div>
         </section>
     );
 }
@@ -136,13 +134,7 @@ function AreaField({
     return (
         <div className={className}>
             <Label htmlFor={id}>{label}</Label>
-            <Textarea
-                id={id}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                rows={rows}
-                className="mt-1.5"
-            />
+            <Textarea id={id} value={value} onChange={(event) => onChange(event.target.value)} rows={rows} className="mt-1.5" />
         </div>
     );
 }
@@ -170,9 +162,9 @@ function ImageField({
                 onChange={(event) => onFile(event.target.files?.[0] ?? null)}
                 className="mt-1.5"
             />
-            {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+            {error && <p className="text-destructive mt-1 text-xs">{error}</p>}
             {currentUrl && (
-                <div className="mt-3 h-28 w-44 overflow-hidden rounded-md border border-border">
+                <div className="border-border mt-3 h-28 w-44 overflow-hidden rounded-md border">
                     <img src={currentUrl} alt={`${label} preview`} className="h-full w-full object-cover" />
                 </div>
             )}
@@ -181,7 +173,6 @@ function ImageField({
 }
 
 export default function PageEdit({ slug, label, pageContent }: EditProps) {
-    const { flash } = usePage<SharedData>().props;
     const { data, setData, put, processing, errors } = useForm<PageFormData>({
         content: pageContent,
         hero_image: null,
@@ -232,90 +223,96 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
     const success = asRecord(content.success);
 
     return (
-        <DashboardLayout
-            variant="admin"
-            title={`Edit ${label}`}
-            subtitle="Update page copy, images, and calls to action"
-        >
+        <DashboardLayout variant="admin" title={`Edit ${label}`} subtitle="Update page copy, images, and calls to action">
             <Head title={`Edit ${label} — Admin`} />
 
             <form onSubmit={submit} className="space-y-6">
-                {flash.success && (
-                    <div className="rounded-md border border-accent/30 bg-accent/10 px-4 py-3 font-body text-sm text-accent">
-                        {flash.success}
-                    </div>
-                )}
-
                 {slug !== 'footer' && (
-                <Section title="Hero">
-                    <ImageField
-                        id="hero_image"
-                        label="Hero image"
-                        currentUrl={previewUrl(asString(hero.image), data.hero_image)}
-                        error={errors.hero_image}
-                        onFile={(file) => setData('hero_image', file)}
-                    />
-                    {hero.eyebrow !== undefined && (
-                        <TextField
-                            id="hero_eyebrow"
-                            label="Eyebrow"
-                            value={asString(hero.eyebrow)}
-                            onChange={(value) => setContent(['hero', 'eyebrow'], value)}
-                        />
-                    )}
-                    <TextField
-                        id="hero_title"
-                        label="Title"
-                        value={asString(hero.title)}
-                        onChange={(value) => setContent(['hero', 'title'], value)}
-                    />
-                    {hero.title_line_2 !== undefined && (
-                        <TextField
-                            id="hero_title_line_2"
-                            label="Title line 2"
-                            value={asString(hero.title_line_2)}
-                            onChange={(value) => setContent(['hero', 'title_line_2'], value)}
-                            className="lg:col-span-2"
-                        />
-                    )}
-                    {hero.body !== undefined && (
-                        <AreaField
-                            id="hero_body"
-                            label="Body"
-                            value={asString(hero.body)}
-                            onChange={(value) => setContent(['hero', 'body'], value)}
-                            className="lg:col-span-2"
-                        />
-                    )}
-                    {hero.cta_primary_label !== undefined && (
-                        <>
-                            <TextField
-                                id="hero_cta_primary_label"
-                                label="Primary CTA label"
-                                value={asString(hero.cta_primary_label)}
-                                onChange={(value) => setContent(['hero', 'cta_primary_label'], value)}
-                            />
-                            <TextField
-                                id="hero_cta_primary_href"
-                                label="Primary CTA link"
-                                value={asString(hero.cta_primary_href)}
-                                onChange={(value) => setContent(['hero', 'cta_primary_href'], value)}
-                            />
-                            <TextField
-                                id="hero_cta_secondary_label"
-                                label="Secondary CTA label"
-                                value={asString(hero.cta_secondary_label)}
-                                onChange={(value) => setContent(['hero', 'cta_secondary_label'], value)}
-                            />
-                            <TextField
-                                id="hero_cta_secondary_href"
-                                label="Secondary CTA link"
-                                value={asString(hero.cta_secondary_href)}
-                                onChange={(value) => setContent(['hero', 'cta_secondary_href'], value)}
-                            />
-                        </>
-                    )}
-                </Section>
+                    <Section title="Hero">
+                        <div className="space-y-4 lg:col-span-2">
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                                <TextField
+                                    id="hero_title"
+                                    label="Title"
+                                    value={asString(hero.title)}
+                                    onChange={(value) => setContent(['hero', 'title'], value)}
+                                />
+                                {hero.title_line_2 !== undefined && (
+                                    <TextField
+                                        id="hero_title_line_2"
+                                        label="Title line 2"
+                                        value={asString(hero.title_line_2)}
+                                        onChange={(value) => setContent(['hero', 'title_line_2'], value)}
+                                    />
+                                )}
+                                {hero.eyebrow !== undefined && (
+                                    <TextField
+                                        id="hero_eyebrow"
+                                        label="Eyebrow"
+                                        value={asString(hero.eyebrow)}
+                                        onChange={(value) => setContent(['hero', 'eyebrow'], value)}
+                                    />
+                                )}
+                                {hero.body === undefined && (
+                                    <ImageField
+                                        id="hero_image"
+                                        label="Hero image"
+                                        currentUrl={previewUrl(asString(hero.image), data.hero_image)}
+                                        error={errors.hero_image}
+                                        onFile={(file) => setData('hero_image', file)}
+                                    />
+                                )}
+                            </div>
+                            {hero.cta_primary_label !== undefined && (
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    <TextField
+                                        id="hero_cta_primary_label"
+                                        label="Primary CTA label"
+                                        value={asString(hero.cta_primary_label)}
+                                        onChange={(value) => setContent(['hero', 'cta_primary_label'], value)}
+                                    />
+                                    <TextField
+                                        id="hero_cta_primary_href"
+                                        label="Primary CTA link"
+                                        value={asString(hero.cta_primary_href)}
+                                        onChange={(value) => setContent(['hero', 'cta_primary_href'], value)}
+                                    />
+                                    <TextField
+                                        id="hero_cta_secondary_label"
+                                        label="Secondary CTA label"
+                                        value={asString(hero.cta_secondary_label)}
+                                        onChange={(value) => setContent(['hero', 'cta_secondary_label'], value)}
+                                    />
+                                    <TextField
+                                        id="hero_cta_secondary_href"
+                                        label="Secondary CTA link"
+                                        value={asString(hero.cta_secondary_href)}
+                                        onChange={(value) => setContent(['hero', 'cta_secondary_href'], value)}
+                                    />
+                                </div>
+                            )}
+                            {hero.body !== undefined && (
+                                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                    <ImageField
+                                        id="hero_image"
+                                        label="Hero image"
+                                        currentUrl={previewUrl(asString(hero.image), data.hero_image)}
+                                        error={errors.hero_image}
+                                        onFile={(file) => setData('hero_image', file)}
+                                    />
+                                    {hero.body !== undefined && (
+                                        <AreaField
+                                            id="hero_body"
+                                            label="Body"
+                                            value={asString(hero.body)}
+                                            onChange={(value) => setContent(['hero', 'body'], value)}
+                                            rows={6}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </Section>
                 )}
 
                 {slug === 'home' && (
@@ -325,28 +322,28 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 const item = asRecord(perk);
 
                                 return (
-                                    <div key={index} className="space-y-3 rounded-lg border border-border p-4">
-                                        <p className="font-body text-xs uppercase tracking-wider text-muted-foreground">
-                                            Perk {index + 1}
-                                        </p>
-                                        <TextField
-                                            id={`perk_${index}_title`}
-                                            label="Title"
-                                            value={asString(item.title)}
-                                            onChange={(value) => setContent(['perks', index, 'title'], value)}
-                                        />
-                                        <TextField
-                                            id={`perk_${index}_description`}
-                                            label="Description"
-                                            value={asString(item.description)}
-                                            onChange={(value) => setContent(['perks', index, 'description'], value)}
-                                        />
+                                    <div key={index} className="border-border space-y-3 rounded-lg border p-4">
+                                        <p className="font-body text-muted-foreground text-xs tracking-wider uppercase">Perk {index + 1}</p>
+                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                            <TextField
+                                                id={`perk_${index}_title`}
+                                                label="Title"
+                                                value={asString(item.title)}
+                                                onChange={(value) => setContent(['perks', index, 'title'], value)}
+                                            />
+                                            <TextField
+                                                id={`perk_${index}_description`}
+                                                label="Description"
+                                                value={asString(item.description)}
+                                                onChange={(value) => setContent(['perks', index, 'description'], value)}
+                                            />
+                                        </div>
                                     </div>
                                 );
                             })}
                         </Section>
 
-                        <Section title="Shop by Category">
+                        <Section title="Shop by Category" columns={3}>
                             <TextField
                                 id="categories_eyebrow"
                                 label="Eyebrow"
@@ -367,7 +364,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                             />
                         </Section>
 
-                        <Section title="Featured Dishes">
+                        <Section title="Featured Dishes" columns={4}>
                             <TextField
                                 id="featured_eyebrow"
                                 label="Eyebrow"
@@ -412,10 +409,8 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 const fileKey = `why_slide_${index}_image` as FileField;
 
                                 return (
-                                    <div key={index} className="space-y-3 rounded-lg border border-border p-4 lg:col-span-2">
-                                        <p className="font-body text-xs uppercase tracking-wider text-muted-foreground">
-                                            Slide {index + 1}
-                                        </p>
+                                    <div key={index} className="border-border space-y-3 rounded-lg border p-4 lg:col-span-2">
+                                        <p className="font-body text-muted-foreground text-xs tracking-wider uppercase">Slide {index + 1}</p>
                                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                                             <ImageField
                                                 id={fileKey}
@@ -424,27 +419,26 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                                 error={errors[fileKey]}
                                                 onFile={(file) => setData(fileKey, file)}
                                             />
-                                            <TextField
-                                                id={`why_${index}_image_alt`}
-                                                label="Image alt text"
-                                                value={asString(item.image_alt)}
-                                                onChange={(value) => setContent(['why', 'slides', index, 'image_alt'], value)}
+                                            <AreaField
+                                                id={`why_${index}_description`}
+                                                label="Body"
+                                                value={asString(item.description)}
+                                                rows={6}
+                                                onChange={(value) => setContent(['why', 'slides', index, 'description'], value)}
                                             />
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                             <TextField
                                                 id={`why_${index}_title`}
                                                 label="Title"
                                                 value={asString(item.title)}
                                                 onChange={(value) => setContent(['why', 'slides', index, 'title'], value)}
-                                                className="lg:col-span-2"
                                             />
-                                            <AreaField
-                                                id={`why_${index}_description`}
-                                                label="Body"
-                                                value={asString(item.description)}
-                                                onChange={(value) =>
-                                                    setContent(['why', 'slides', index, 'description'], value)
-                                                }
-                                                className="lg:col-span-2"
+                                            <TextField
+                                                id={`why_${index}_image_alt`}
+                                                label="Image alt text"
+                                                value={asString(item.image_alt)}
+                                                onChange={(value) => setContent(['why', 'slides', index, 'image_alt'], value)}
                                             />
                                             <TextField
                                                 id={`why_${index}_cta_label`}
@@ -464,10 +458,11 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                             })}
                         </Section>
 
-                        <Section title="Taste the Difference">
+                        <Section title="Taste the Difference" columns={4}>
                             <TextField
                                 id="cta_heading"
                                 label="Heading"
+                                className="lg:col-span-2"
                                 value={asString(cta.heading)}
                                 onChange={(value) => setContent(['cta', 'heading'], value)}
                             />
@@ -504,7 +499,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                             />
                         </Section>
 
-                        <Section title="Newsletter">
+                        <Section title="Newsletter" columns={3}>
                             <TextField
                                 id="newsletter_eyebrow"
                                 label="Eyebrow"
@@ -517,22 +512,22 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 value={asString(newsletter.heading)}
                                 onChange={(value) => setContent(['newsletter', 'heading'], value)}
                             />
-                            <AreaField
-                                id="newsletter_body"
-                                label="Body"
-                                value={asString(newsletter.body)}
-                                onChange={(value) => setContent(['newsletter', 'body'], value)}
-                                className="lg:col-span-2"
-                            />
                             <TextField
                                 id="newsletter_button_label"
                                 label="Button label"
                                 value={asString(newsletter.button_label)}
                                 onChange={(value) => setContent(['newsletter', 'button_label'], value)}
                             />
+                            <AreaField
+                                id="newsletter_body"
+                                label="Body"
+                                value={asString(newsletter.body)}
+                                onChange={(value) => setContent(['newsletter', 'body'], value)}
+                                className="sm:col-span-2 lg:col-span-3"
+                            />
                         </Section>
 
-                        <Section title="Blog">
+                        <Section title="Blog" columns={3}>
                             <TextField
                                 id="blog_eyebrow"
                                 label="Eyebrow"
@@ -557,27 +552,12 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
 
                 {slug === 'about' && (
                     <>
-                        <Section title="Story">
-                            <ImageField
-                                id="story_image"
-                                label="Story image"
-                                currentUrl={previewUrl(asString(story.image), data.story_image)}
-                                error={errors.story_image}
-                                onFile={(file) => setData('story_image', file)}
-                            />
+                        <Section title="Story" columns={3}>
                             <TextField
                                 id="story_heading"
                                 label="Heading"
                                 value={asString(story.heading)}
                                 onChange={(value) => setContent(['story', 'heading'], value)}
-                            />
-                            <AreaField
-                                id="story_body"
-                                label="Body"
-                                value={asString(story.body)}
-                                onChange={(value) => setContent(['story', 'body'], value)}
-                                rows={6}
-                                className="lg:col-span-2"
                             />
                             <TextField
                                 id="story_cta_label"
@@ -591,6 +571,22 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 value={asString(story.cta_href)}
                                 onChange={(value) => setContent(['story', 'cta_href'], value)}
                             />
+                            <div className="grid grid-cols-1 gap-4 sm:col-span-2 lg:col-span-3 lg:grid-cols-2">
+                                <ImageField
+                                    id="story_image"
+                                    label="Story image"
+                                    currentUrl={previewUrl(asString(story.image), data.story_image)}
+                                    error={errors.story_image}
+                                    onFile={(file) => setData('story_image', file)}
+                                />
+                                <AreaField
+                                    id="story_body"
+                                    label="Body"
+                                    value={asString(story.body)}
+                                    onChange={(value) => setContent(['story', 'body'], value)}
+                                    rows={6}
+                                />
+                            </div>
                         </Section>
 
                         <Section title="History">
@@ -598,7 +594,10 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 const item = asRecord(block);
 
                                 return (
-                                    <div key={index} className="space-y-3 rounded-lg border border-border p-4">
+                                    <div
+                                        key={index}
+                                        className="border-border grid grid-cols-1 gap-4 rounded-lg border p-4 sm:col-span-2 lg:grid-cols-[1fr_2fr]"
+                                    >
                                         <TextField
                                             id={`history_${index}_heading`}
                                             label="Heading"
@@ -610,27 +609,19 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                             label="Body"
                                             value={asString(item.body)}
                                             onChange={(value) => setContent(['history', index, 'body'], value)}
-                                            rows={5}
+                                            rows={4}
                                         />
                                     </div>
                                 );
                             })}
                         </Section>
 
-                        <Section title="Culture">
+                        <Section title="Culture" columns={3}>
                             <TextField
                                 id="culture_heading"
                                 label="Heading"
                                 value={asString(culture.heading)}
                                 onChange={(value) => setContent(['culture', 'heading'], value)}
-                            />
-                            <AreaField
-                                id="culture_body"
-                                label="Body"
-                                value={asString(culture.body)}
-                                onChange={(value) => setContent(['culture', 'body'], value)}
-                                rows={5}
-                                className="lg:col-span-2"
                             />
                             <TextField
                                 id="culture_cta_label"
@@ -644,20 +635,29 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 value={asString(culture.cta_href)}
                                 onChange={(value) => setContent(['culture', 'cta_href'], value)}
                             />
-                            <ImageField
-                                id="culture_image"
-                                label="Culture image"
-                                currentUrl={previewUrl(asString(culture.image), data.culture_image)}
-                                error={errors.culture_image}
-                                onFile={(file) => setData('culture_image', file)}
-                            />
+                            <div className="grid grid-cols-1 gap-4 sm:col-span-2 lg:col-span-3 lg:grid-cols-2">
+                                <ImageField
+                                    id="culture_image"
+                                    label="Culture image"
+                                    currentUrl={previewUrl(asString(culture.image), data.culture_image)}
+                                    error={errors.culture_image}
+                                    onFile={(file) => setData('culture_image', file)}
+                                />
+                                <AreaField
+                                    id="culture_body"
+                                    label="Body"
+                                    value={asString(culture.body)}
+                                    onChange={(value) => setContent(['culture', 'body'], value)}
+                                    rows={6}
+                                />
+                            </div>
                         </Section>
                     </>
                 )}
 
                 {slug === 'contact' && (
                     <>
-                        <Section title="Intro">
+                        <Section title="Intro" columns={3}>
                             <TextField
                                 id="intro_eyebrow"
                                 label="Eyebrow"
@@ -675,23 +675,16 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 label="Body"
                                 value={asString(intro.body)}
                                 onChange={(value) => setContent(['intro', 'body'], value)}
-                                className="lg:col-span-2"
+                                className="sm:col-span-2 lg:col-span-3"
                             />
                         </Section>
 
-                        <Section title="Contact details">
+                        <Section title="Contact details" columns={4}>
                             <TextField
                                 id="location_label"
                                 label="Location label"
                                 value={asString(content.location_label)}
                                 onChange={(value) => setContent(['location_label'], value)}
-                            />
-                            <AreaField
-                                id="location"
-                                label="Location"
-                                value={asString(content.location)}
-                                onChange={(value) => setContent(['location'], value)}
-                                rows={2}
                             />
                             <TextField
                                 id="phone_label"
@@ -700,28 +693,10 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 onChange={(value) => setContent(['phone_label'], value)}
                             />
                             <TextField
-                                id="phone"
-                                label="Phone"
-                                value={asString(content.phone)}
-                                onChange={(value) => setContent(['phone'], value)}
-                            />
-                            <TextField
                                 id="email_label"
                                 label="Email label"
                                 value={asString(content.email_label)}
                                 onChange={(value) => setContent(['email_label'], value)}
-                            />
-                            <TextField
-                                id="email"
-                                label="Email"
-                                value={asString(content.email)}
-                                onChange={(value) => setContent(['email'], value)}
-                            />
-                            <TextField
-                                id="whatsapp_url"
-                                label="WhatsApp URL"
-                                value={asString(content.whatsapp_url)}
-                                onChange={(value) => setContent(['whatsapp_url'], value)}
                             />
                             <TextField
                                 id="whatsapp_label"
@@ -729,11 +704,27 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 value={asString(content.whatsapp_label)}
                                 onChange={(value) => setContent(['whatsapp_label'], value)}
                             />
+                            <AreaField
+                                id="location"
+                                label="Location"
+                                value={asString(content.location)}
+                                onChange={(value) => setContent(['location'], value)}
+                                rows={2}
+                            />
+                            <TextField id="phone" label="Phone" value={asString(content.phone)} onChange={(value) => setContent(['phone'], value)} />
+                            <TextField id="email" label="Email" value={asString(content.email)} onChange={(value) => setContent(['email'], value)} />
+                            <TextField
+                                id="whatsapp_url"
+                                label="WhatsApp URL"
+                                value={asString(content.whatsapp_url)}
+                                onChange={(value) => setContent(['whatsapp_url'], value)}
+                            />
                             <TextField
                                 id="map_heading"
                                 label="Map heading"
                                 value={asString(content.map_heading)}
                                 onChange={(value) => setContent(['map_heading'], value)}
+                                className="lg:col-span-2"
                             />
                         </Section>
                     </>
@@ -746,45 +737,46 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 const item = asRecord(type);
 
                                 return (
-                                    <div key={asString(item.value) || index} className="space-y-3 rounded-lg border border-border p-4">
-                                        <p className="font-body text-xs uppercase tracking-wider text-muted-foreground">
-                                            {asString(item.value)}
-                                        </p>
-                                        <TextField
-                                            id={`booking_type_${index}_label`}
-                                            label="Label"
-                                            value={asString(item.label)}
-                                            onChange={(value) => setContent(['types', index, 'label'], value)}
-                                        />
-                                        <TextField
-                                            id={`booking_type_${index}_description`}
-                                            label="Description"
-                                            value={asString(item.description)}
-                                            onChange={(value) => setContent(['types', index, 'description'], value)}
-                                        />
+                                    <div key={asString(item.value) || index} className="border-border space-y-3 rounded-lg border p-4 sm:col-span-2">
+                                        <p className="font-body text-muted-foreground text-xs tracking-wider uppercase">{asString(item.value)}</p>
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_2fr]">
+                                            <TextField
+                                                id={`booking_type_${index}_label`}
+                                                label="Label"
+                                                value={asString(item.label)}
+                                                onChange={(value) => setContent(['types', index, 'label'], value)}
+                                            />
+                                            <TextField
+                                                id={`booking_type_${index}_description`}
+                                                label="Description"
+                                                value={asString(item.description)}
+                                                onChange={(value) => setContent(['types', index, 'description'], value)}
+                                            />
+                                        </div>
                                     </div>
                                 );
                             })}
                         </Section>
 
-                        <Section title="Success message">
+                        <Section title="Success message" columns={3}>
                             <TextField
                                 id="success_heading"
                                 label="Heading"
                                 value={asString(success.heading)}
                                 onChange={(value) => setContent(['success', 'heading'], value)}
                             />
-                            <AreaField
-                                id="success_confirm_copy"
-                                label="Confirmation copy"
-                                value={asString(success.confirm_copy)}
-                                onChange={(value) => setContent(['success', 'confirm_copy'], value)}
-                            />
                             <TextField
                                 id="success_cta_label"
                                 label="CTA label"
                                 value={asString(success.cta_label)}
                                 onChange={(value) => setContent(['success', 'cta_label'], value)}
+                            />
+                            <AreaField
+                                id="success_confirm_copy"
+                                label="Confirmation copy"
+                                value={asString(success.confirm_copy)}
+                                onChange={(value) => setContent(['success', 'confirm_copy'], value)}
+                                className="sm:col-span-2 lg:col-span-3"
                             />
                         </Section>
                     </>
@@ -805,42 +797,38 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 const items = asList(item.items);
 
                                 return (
-                                    <div key={index} className="space-y-3 rounded-lg border border-border p-4 lg:col-span-2">
-                                        <p className="font-body text-xs uppercase tracking-wider text-muted-foreground">
-                                            Section {index + 1}
-                                        </p>
-                                        <TextField
-                                            id={`menu_section_${index}_title`}
-                                            label="Title"
-                                            value={asString(item.title)}
-                                            onChange={(value) => setContent(['details', index, 'title'], value)}
-                                        />
+                                    <div key={index} className="border-border space-y-3 rounded-lg border p-4 lg:col-span-2">
+                                        <p className="font-body text-muted-foreground text-xs tracking-wider uppercase">Section {index + 1}</p>
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                            <TextField
+                                                id={`menu_section_${index}_title`}
+                                                label="Title"
+                                                value={asString(item.title)}
+                                                onChange={(value) => setContent(['details', index, 'title'], value)}
+                                            />
+                                            {index > 2 && (
+                                                <>
+                                                    <TextField
+                                                        id={`menu_section_${index}_cta_label`}
+                                                        label="CTA label"
+                                                        value={asString(item.cta_label)}
+                                                        onChange={(value) => setContent(['details', index, 'cta_label'], value)}
+                                                    />
+                                                    <TextField
+                                                        id={`menu_section_${index}_cta_category`}
+                                                        label="CTA category"
+                                                        value={asString(item.cta_category)}
+                                                        onChange={(value) => setContent(['details', index, 'cta_category'], value)}
+                                                    />
+                                                </>
+                                            )}
+                                        </div>
                                         <AreaField
                                             id={`menu_section_${index}_description`}
                                             label="Description"
                                             value={asString(item.description)}
                                             onChange={(value) => setContent(['details', index, 'description'], value)}
                                         />
-                                        {index > 2 && (
-                                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                                                <TextField
-                                                    id={`menu_section_${index}_cta_label`}
-                                                    label="CTA label"
-                                                    value={asString(item.cta_label)}
-                                                    onChange={(value) =>
-                                                        setContent(['details', index, 'cta_label'], value)
-                                                    }
-                                                />
-                                                <TextField
-                                                    id={`menu_section_${index}_cta_category`}
-                                                    label="CTA category"
-                                                    value={asString(item.cta_category)}
-                                                    onChange={(value) =>
-                                                        setContent(['details', index, 'cta_category'], value)
-                                                    }
-                                                />
-                                            </div>
-                                        )}
                                         <div className="space-y-3">
                                             {items.map((menuItem, itemIndex) => {
                                                 const row = asRecord(menuItem);
@@ -848,34 +836,20 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                                 return (
                                                     <div
                                                         key={itemIndex}
-                                                        className="grid grid-cols-1 gap-3 rounded-md border border-border p-3 sm:grid-cols-[1fr_1fr_auto]"
+                                                        className="border-border grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-[1fr_1fr_auto]"
                                                     >
                                                         <TextField
                                                             id={`menu_item_${index}_${itemIndex}_name`}
                                                             label="Item name"
                                                             value={asString(row.name)}
-                                                            onChange={(value) =>
-                                                                setContent(
-                                                                    ['details', index, 'items', itemIndex, 'name'],
-                                                                    value,
-                                                                )
-                                                            }
+                                                            onChange={(value) => setContent(['details', index, 'items', itemIndex, 'name'], value)}
                                                         />
                                                         <TextField
                                                             id={`menu_item_${index}_${itemIndex}_description`}
                                                             label="Item description"
                                                             value={asString(row.description)}
                                                             onChange={(value) =>
-                                                                setContent(
-                                                                    [
-                                                                        'details',
-                                                                        index,
-                                                                        'items',
-                                                                        itemIndex,
-                                                                        'description',
-                                                                    ],
-                                                                    value,
-                                                                )
+                                                                setContent(['details', index, 'items', itemIndex, 'description'], value)
                                                             }
                                                         />
                                                         <Button
@@ -899,10 +873,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => {
-                                                    setContent(['details', index, 'items'], [
-                                                        ...items,
-                                                        { name: '', description: '' },
-                                                    ]);
+                                                    setContent(['details', index, 'items'], [...items, { name: '', description: '' }]);
                                                 }}
                                             >
                                                 <Plus className="mr-2 h-4 w-4" />
@@ -914,7 +885,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                             })}
                         </Section>
 
-                        <Section title="Menu boards">
+                        <Section title="Menu boards" columns={3}>
                             <ImageField
                                 id="board_left_top"
                                 label="Left top board"
@@ -957,7 +928,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 const item = asRecord(block);
 
                                 return (
-                                    <div key={index} className="space-y-3 rounded-lg border border-border p-4">
+                                    <div key={index} className="border-border space-y-3 rounded-lg border p-4">
                                         <TextField
                                             id={`gallery_featured_${index}_title`}
                                             label="Title"
@@ -1040,23 +1011,19 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 return (
                                     <div
                                         key={index}
-                                        className="grid grid-cols-1 gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1fr_1fr_auto] lg:col-span-2"
+                                        className="border-border grid grid-cols-1 gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_1fr_auto] lg:col-span-2"
                                     >
                                         <TextField
                                             id={`taste_map_${index}_label`}
                                             label="Label"
                                             value={asString(item.label)}
-                                            onChange={(value) =>
-                                                setContent(['taste_map', index, 'label'], value)
-                                            }
+                                            onChange={(value) => setContent(['taste_map', index, 'label'], value)}
                                         />
                                         <TextField
                                             id={`taste_map_${index}_href`}
                                             label="Link"
                                             value={asString(item.href)}
-                                            onChange={(value) =>
-                                                setContent(['taste_map', index, 'href'], value)
-                                            }
+                                            onChange={(value) => setContent(['taste_map', index, 'href'], value)}
                                         />
                                         <Button
                                             type="button"
@@ -1082,10 +1049,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        setContent(['taste_map'], [
-                                            ...asList(content.taste_map),
-                                            { label: '', href: '/menu' },
-                                        ]);
+                                        setContent(['taste_map'], [...asList(content.taste_map), { label: '', href: '/menu' }]);
                                     }}
                                 >
                                     <Plus className="mr-2 h-4 w-4" />
@@ -1108,23 +1072,19 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 return (
                                     <div
                                         key={index}
-                                        className="grid grid-cols-1 gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1fr_1fr_auto] lg:col-span-2"
+                                        className="border-border grid grid-cols-1 gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_1fr_auto] lg:col-span-2"
                                     >
                                         <TextField
                                             id={`community_${index}_label`}
                                             label="Label"
                                             value={asString(item.label)}
-                                            onChange={(value) =>
-                                                setContent(['community', index, 'label'], value)
-                                            }
+                                            onChange={(value) => setContent(['community', index, 'label'], value)}
                                         />
                                         <TextField
                                             id={`community_${index}_href`}
                                             label="URL"
                                             value={asString(item.href)}
-                                            onChange={(value) =>
-                                                setContent(['community', index, 'href'], value)
-                                            }
+                                            onChange={(value) => setContent(['community', index, 'href'], value)}
                                         />
                                         <Button
                                             type="button"
@@ -1150,10 +1110,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        setContent(['community'], [
-                                            ...asList(content.community),
-                                            { label: '', href: '' },
-                                        ]);
+                                        setContent(['community'], [...asList(content.community), { label: '', href: '' }]);
                                     }}
                                 >
                                     <Plus className="mr-2 h-4 w-4" />
@@ -1170,7 +1127,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 onChange={(value) => setContent(['copyright'], value)}
                                 className="lg:col-span-2"
                             />
-                            <p className="-mt-2 font-body text-xs text-muted-foreground lg:col-span-2">
+                            <p className="font-body text-muted-foreground -mt-2 text-xs lg:col-span-2">
                                 Use {'{year}'} to insert the current year automatically.
                             </p>
                             {asList(content.nav).map((link, index) => {
@@ -1179,7 +1136,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                 return (
                                     <div
                                         key={index}
-                                        className="grid grid-cols-1 gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1fr_1fr_auto] lg:col-span-2"
+                                        className="border-border grid grid-cols-1 gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_1fr_auto] lg:col-span-2"
                                     >
                                         <TextField
                                             id={`footer_nav_${index}_label`}
