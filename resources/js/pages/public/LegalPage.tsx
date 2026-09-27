@@ -21,8 +21,8 @@ export default function LegalPage({ pageContent }: { pageContent: LegalPageConte
         <AppLayout>
             <Head title={pageContent.title} />
 
-            <section className="bg-background px-4 pt-28 pb-16 sm:pt-32 sm:pb-20">
-                <div className="mx-auto max-w-3xl">
+            <section className="bg-background pt-28 pb-16 sm:pt-32 sm:pb-20">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <PageBreadcrumb items={[{ title: 'Home', href: '/' }, { title: pageContent.title }]} />
 
                     <div className="border-border mt-4 rounded-xl border bg-white p-6 shadow-sm sm:p-10">
