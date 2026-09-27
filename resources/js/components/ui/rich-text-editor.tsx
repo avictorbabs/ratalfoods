@@ -3,6 +3,8 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import {
     Bold,
+    Heading2,
+    Heading3,
     Italic,
     List,
     ListOrdered,
@@ -145,6 +147,23 @@ export function RichTextEditor({
                     label="Strikethrough"
                 >
                     <Strikethrough className="h-4 w-4" />
+                </ToolbarButton>
+
+                <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                    isActive={editor.isActive('heading', { level: 2 })}
+                    label="Heading"
+                >
+                    <Heading2 className="h-4 w-4" />
+                </ToolbarButton>
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                    isActive={editor.isActive('heading', { level: 3 })}
+                    label="Subheading"
+                >
+                    <Heading3 className="h-4 w-4" />
                 </ToolbarButton>
 
                 <span className="mx-1 h-5 w-px bg-border" aria-hidden />

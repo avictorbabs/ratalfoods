@@ -9,7 +9,7 @@ class PageContentDefaults
      */
     public static function slugs(): array
     {
-        return ['home', 'about', 'contact', 'booking', 'menu', 'gallery', 'footer'];
+        return ['home', 'about', 'contact', 'booking', 'menu', 'gallery', 'footer', 'faq', 'privacy', 'terms', 'refund'];
     }
 
     public static function label(string $slug): string
@@ -22,6 +22,10 @@ class PageContentDefaults
             'menu' => 'Menu',
             'gallery' => 'Gallery',
             'footer' => 'Footer',
+            'faq' => 'FAQ',
+            'privacy' => 'Privacy Policy',
+            'terms' => 'Terms & Conditions',
+            'refund' => 'Refund Policy',
             default => ucfirst($slug),
         };
     }
@@ -39,6 +43,10 @@ class PageContentDefaults
             'menu' => self::menu(),
             'gallery' => self::gallery(),
             'footer' => self::footer(),
+            'faq' => LegalPageDefaults::faq(),
+            'privacy' => LegalPageDefaults::privacy(),
+            'terms' => LegalPageDefaults::terms(),
+            'refund' => LegalPageDefaults::refund(),
             default => [],
         };
     }
@@ -59,6 +67,7 @@ class PageContentDefaults
 
             if (is_array($value) && is_array($stored[$key]) && ! array_is_list($value)) {
                 $defaults[$key] = self::merge($value, $stored[$key]);
+
                 continue;
             }
 
@@ -359,6 +368,13 @@ class PageContentDefaults
                 ['label' => 'TikTok', 'href' => 'https://www.tiktok.com/@ratal.foods'],
                 ['label' => 'LinkedIn', 'href' => 'https://www.linkedin.com/in/augustina-kadiri-omogbai'],
                 ['label' => 'Yelp', 'href' => 'https://www.yelp.com/biz/GN4j-qGUouoNFm_K6ZmKgA'],
+            ],
+            'legal_heading' => 'Legal Pages',
+            'legal' => [
+                ['label' => 'FAQ', 'href' => '/faq'],
+                ['label' => 'Privacy Policy', 'href' => '/privacy-policy'],
+                ['label' => 'Terms & Conditions', 'href' => '/terms-and-conditions'],
+                ['label' => 'Refund Policy', 'href' => '/refund-policy'],
             ],
             'copyright' => '© {year} Ratal Foods. All Rights Reserved.',
             'nav' => [

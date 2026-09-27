@@ -30,7 +30,7 @@ export default function Footer() {
     return (
         <footer className="bg-foreground text-background/80">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-                <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-8">
+                <div className="grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
                     <div>
                         {footerContent.logo ? (
                             <img
@@ -62,6 +62,15 @@ export default function Footer() {
                         </h4>
                         <nav className="flex flex-col gap-2">
                             {footerContent.community.map((link) => (
+                                <FooterNavLink key={`${link.label}-${link.href}`} link={link} className={linkClass} />
+                            ))}
+                        </nav>
+                    </div>
+
+                    <div>
+                        <h4 className="font-body text-background mb-4 text-xs font-bold tracking-widest uppercase">{footerContent.legal_heading}</h4>
+                        <nav className="flex flex-col gap-2">
+                            {(footerContent.legal ?? []).map((link) => (
                                 <FooterNavLink key={`${link.label}-${link.href}`} link={link} className={linkClass} />
                             ))}
                         </nav>

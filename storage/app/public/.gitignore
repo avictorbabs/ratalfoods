@@ -1,2 +1,1 @@
-*
-!.gitignore
+# Media in this folder is tracked so deploy can ship the initial uploads.

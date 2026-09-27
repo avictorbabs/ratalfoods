@@ -110,7 +110,7 @@ export type DeliveryFeeZone = {
     fee: string;
 };
 
-export type PageSlug = 'home' | 'about' | 'contact' | 'booking' | 'menu' | 'gallery' | 'footer';
+export type PageSlug = 'home' | 'about' | 'contact' | 'booking' | 'menu' | 'gallery' | 'footer' | 'faq' | 'privacy' | 'terms' | 'refund';
 
 export type PageHeroContent = {
     image: string;
@@ -242,6 +242,8 @@ export type FooterPageContent = {
     taste_map: FooterLink[];
     community_heading: string;
     community: FooterLink[];
+    legal_heading: string;
+    legal: FooterLink[];
     copyright: string;
     nav: FooterLink[];
 };

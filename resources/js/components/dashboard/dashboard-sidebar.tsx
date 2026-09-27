@@ -28,6 +28,7 @@ import {
     CalendarDays,
     ChevronDown,
     ChevronsUpDown,
+    CircleHelp,
     ExternalLink,
     FileText,
     House,
@@ -40,8 +41,11 @@ import {
     MapPinned,
     Package,
     PanelBottom,
+    ReceiptText,
     Repeat,
+    ScrollText,
     Settings,
+    ShieldCheck,
     ShoppingBag,
     Store,
     Tags,
@@ -83,6 +87,10 @@ const adminPageLinks: NavLink[] = [
     { title: 'Menu', href: '/admin/pages/menu', icon: UtensilsCrossed },
     { title: 'Gallery', href: '/admin/pages/gallery', icon: Images },
     { title: 'Footer', href: '/admin/pages/footer', icon: PanelBottom },
+    { title: 'FAQ', href: '/admin/pages/faq', icon: CircleHelp },
+    { title: 'Privacy Policy', href: '/admin/pages/privacy', icon: ShieldCheck },
+    { title: 'Terms & Conditions', href: '/admin/pages/terms', icon: ScrollText },
+    { title: 'Refund Policy', href: '/admin/pages/refund', icon: ReceiptText },
 ];
 
 const userLinks: NavLink[] = [

@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/layouts/dashboard-layout';
 import type { PageSlug } from '@/types/ratalfoods';
@@ -227,7 +228,7 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
             <Head title={`Edit ${label} — Admin`} />
 
             <form onSubmit={submit} className="space-y-6">
-                {slug !== 'footer' && (
+                {!['footer', 'faq', 'privacy', 'terms', 'refund'].includes(slug) && (
                     <Section title="Hero">
                         <div className="space-y-4 lg:col-span-2">
                             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -966,6 +967,113 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                     </>
                 )}
 
+                {['privacy', 'terms', 'refund'].includes(slug) && (
+                    <>
+                        <Section title="Page">
+                            <TextField
+                                id="legal_title"
+                                label="Title"
+                                value={asString(content.title)}
+                                onChange={(value) => setContent(['title'], value)}
+                            />
+                            <TextField
+                                id="legal_updated_on"
+                                label="Last updated (shown on the page)"
+                                value={asString(content.updated_on)}
+                                onChange={(value) => setContent(['updated_on'], value)}
+                            />
+                            <div className="lg:col-span-2">
+                                <Label htmlFor="legal_body">Text</Label>
+                                <p className="text-muted-foreground mt-1 text-xs">
+                                    Use the H2 and H3 buttons for headings. You can use {'{store_name}'}, {'{store_email}'}, {'{store_phone}'} and{' '}
+                                    {'{store_address}'}; they are filled in from Store Settings.
+                                </p>
+                                <RichTextEditor
+                                    id="legal_body"
+                                    value={asString(content.body)}
+                                    onChange={(value) => setContent(['body'], value)}
+                                    placeholder="Write the page text…"
+                                    className="mt-2"
+                                />
+                            </div>
+                        </Section>
+                    </>
+                )}
+
+                {slug === 'faq' && (
+                    <>
+                        <Section title="Page">
+                            <TextField
+                                id="faq_title"
+                                label="Title"
+                                value={asString(content.title)}
+                                onChange={(value) => setContent(['title'], value)}
+                            />
+                            <AreaField
+                                id="faq_intro"
+                                label="Intro"
+                                value={asString(content.intro)}
+                                onChange={(value) => setContent(['intro'], value)}
+                                rows={2}
+                                className="lg:col-span-2"
+                            />
+                        </Section>
+
+                        <Section title="Questions">
+                            {asList(content.items).map((entry, index) => {
+                                const item = asRecord(entry);
+
+                                return (
+                                    <div key={index} className="border-border space-y-3 rounded-lg border p-4 lg:col-span-2">
+                                        <div className="flex items-start gap-3">
+                                            <TextField
+                                                id={`faq_${index}_question`}
+                                                label={`Question ${index + 1}`}
+                                                value={asString(item.question)}
+                                                onChange={(value) => setContent(['items', index, 'question'], value)}
+                                                className="flex-1"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="mt-6"
+                                                onClick={() =>
+                                                    setContent(
+                                                        ['items'],
+                                                        asList(content.items).filter((_, current) => current !== index),
+                                                    )
+                                                }
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                                <span className="sr-only">Remove question</span>
+                                            </Button>
+                                        </div>
+                                        <AreaField
+                                            id={`faq_${index}_answer`}
+                                            label="Answer"
+                                            value={asString(item.answer)}
+                                            onChange={(value) => setContent(['items', index, 'answer'], value)}
+                                            rows={3}
+                                        />
+                                    </div>
+                                );
+                            })}
+                            <div className="lg:col-span-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setContent(['items'], [...asList(content.items), { question: '', answer: '' }])}
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add question
+                                </Button>
+                            </div>
+                        </Section>
+                    </>
+                )}
+
                 {slug === 'footer' && (
                     <>
                         <Section title="Brand">
@@ -1111,6 +1219,67 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                                     size="sm"
                                     onClick={() => {
                                         setContent(['community'], [...asList(content.community), { label: '', href: '' }]);
+                                    }}
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add link
+                                </Button>
+                            </div>
+                        </Section>
+
+                        <Section title="Legal Pages">
+                            <TextField
+                                id="legal_heading"
+                                label="Heading"
+                                value={asString(content.legal_heading)}
+                                onChange={(value) => setContent(['legal_heading'], value)}
+                                className="lg:col-span-2"
+                            />
+                            {asList(content.legal).map((link, index) => {
+                                const item = asRecord(link);
+
+                                return (
+                                    <div
+                                        key={index}
+                                        className="border-border grid grid-cols-1 gap-3 rounded-lg border p-4 sm:grid-cols-[1fr_1fr_auto] lg:col-span-2"
+                                    >
+                                        <TextField
+                                            id={`legal_${index}_label`}
+                                            label="Label"
+                                            value={asString(item.label)}
+                                            onChange={(value) => setContent(['legal', index, 'label'], value)}
+                                        />
+                                        <TextField
+                                            id={`legal_${index}_href`}
+                                            label="URL"
+                                            value={asString(item.href)}
+                                            onChange={(value) => setContent(['legal', index, 'href'], value)}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="mt-6"
+                                            onClick={() => {
+                                                setContent(
+                                                    ['legal'],
+                                                    asList(content.legal).filter((_, current) => current !== index),
+                                                );
+                                            }}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="sr-only">Remove link</span>
+                                        </Button>
+                                    </div>
+                                );
+                            })}
+                            <div className="lg:col-span-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setContent(['legal'], [...asList(content.legal), { label: '', href: '' }]);
                                     }}
                                 >
                                     <Plus className="mr-2 h-4 w-4" />

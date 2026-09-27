@@ -1,0 +1,369 @@
+name: Deploy to Namecheap CPanel
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, mysql, zip
+          coverage: none
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Ensure public/.htaccess exists in local repo
+        run: |
+          if [ ! -f public/.htaccess ]; then
+            echo "Creating public/.htaccess..."
+            cat > public/.htaccess << 'EOF'
+          <IfModule mod_rewrite.c>
+              <IfModule mod_negotiation.c>
+                  Options -MultiViews -Indexes
+              </IfModule>
+
+              RewriteEngine On
+
+              # Handle Authorization Header
+              RewriteCond %{HTTP:Authorization} .
+              RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+              # Redirect Trailing Slashes If Not A Folder...
+              RewriteCond %{REQUEST_FILENAME} !-d
+              RewriteCond %{REQUEST_URI} (.+)/$
+              RewriteRule ^ %1 [L,R=301]
+
+              # Send Requests To Front Controller...
+              RewriteCond %{REQUEST_FILENAME} !-d
+              RewriteCond %{REQUEST_FILENAME} !-f
+              RewriteRule ^ index.php [L]
+          </IfModule>
+          EOF
+          else
+            echo "✓ public/.htaccess already exists"
+          fi
+          cat public/.htaccess
+
+      - name: Create .env for build
+        run: |
+          cat > .env << 'EOF'
+          ${{ secrets.ENV }}
+          EOF
+
+      - name: Install PHP dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+      
+      - name: Install Node dependencies
+        run: npm ci
+      
+      - name: Build assets
+        run: npm run build
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p 21098 -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy project files to server
+        run: |
+          set -euo pipefail
+          REMOTE="${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }}"
+          ARCHIVE="/tmp/ratalfoods-deploy-${GITHUB_SHA}.tar.gz"
+
+          echo "=== Creating deploy archive ==="
+          tar \
+            --exclude='./.git' \
+            --exclude='./.github' \
+            --exclude='./node_modules' \
+            --exclude='./.env' \
+            --exclude='./storage/logs' \
+            --exclude='./storage/framework/cache/data' \
+            --exclude='./storage/framework/sessions' \
+            --exclude='./storage/framework/views' \
+            --exclude='./storage/app/private' \
+            --exclude='./database/*.sqlite*' \
+            -czf "$ARCHIVE" .
+
+          ls -lh "$ARCHIVE"
+
+          echo "=== Uploading archive via SSH (home directory) ==="
+          ssh -p 21098 -T -o BatchMode=yes -o ServerAliveInterval=30 \
+            "$REMOTE" "cat > ~/ratalfoods-deploy-${GITHUB_SHA}.tar.gz" < "$ARCHIVE"
+
+          echo "=== Extracting and syncing on server ==="
+          ssh -p 21098 -T -o BatchMode=yes -o ServerAliveInterval=30 "$REMOTE" bash --noprofile --norc -s << ENDSSH
+          set -euo pipefail
+          cd ~
+          REMOTE_HOME="\$(pwd)"
+          DEST="\${REMOTE_HOME}/public_html"
+          STAGE="\${REMOTE_HOME}/ratalfoods-stage-${GITHUB_SHA}"
+          ARCHIVE="\${REMOTE_HOME}/ratalfoods-deploy-${GITHUB_SHA}.tar.gz"
+
+          echo "Remote home: \${REMOTE_HOME}"
+          echo "Deploy dest: \${DEST}"
+          ls -la "\${REMOTE_HOME}" | head || true
+
+          test -f "\${ARCHIVE}"
+          rm -rf "\${STAGE}"
+          mkdir -p "\${STAGE}" "\${DEST}"
+          tar -xzf "\${ARCHIVE}" -C "\${STAGE}"
+
+          echo "=== Extracted files (sample) ==="
+          ls -la "\${STAGE}" | head || true
+
+          if command -v rsync >/dev/null 2>&1; then
+            rsync -a --delete \
+              --exclude "storage/logs/" \
+              --exclude "storage/framework/cache/data/" \
+              --exclude "storage/framework/sessions/" \
+              --exclude "storage/framework/views/" \
+              --exclude "storage/app/public/" \
+              --exclude "storage/app/private/" \
+              --exclude "database/*.sqlite*" \
+              --exclude ".env" \
+              "\${STAGE}"/ "\${DEST}"/
+            if [ -d "\${STAGE}/storage/app/public" ]; then
+              mkdir -p "\${DEST}/storage/app/public"
+              rsync -a "\${STAGE}/storage/app/public/" "\${DEST}/storage/app/public/"
+            fi
+          else
+            cp -a "\${STAGE}"/. "\${DEST}"/
+          fi
+
+          mkdir -p \
+            "\${DEST}"/storage/logs \
+            "\${DEST}"/storage/framework/cache/data \
+            "\${DEST}"/storage/framework/sessions \
+            "\${DEST}"/storage/framework/views \
+            "\${DEST}"/storage/app/public \
+            "\${DEST}"/storage/app/private \
+            "\${DEST}"/bootstrap/cache
+
+          if [ ! -f "\${DEST}/artisan" ] || [ ! -f "\${DEST}/public/index.php" ]; then
+            echo "ERROR: Deploy did not land in public_html (missing artisan or public/index.php)."
+            echo "Contents of DEST:"
+            ls -la "\${DEST}" || true
+            echo "Looking for nested copies:"
+            ls -la "\${REMOTE_HOME}/home" 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "=== public_html after sync ==="
+          ls -la "\${DEST}" | head || true
+
+          rm -rf "\${STAGE}" "\${ARCHIVE}"
+          echo "Deploy sync complete"
+          ENDSSH
+
+          rm -f "$ARCHIVE"
+          echo "=== Deploy finished ==="
+
+      - name: Verify and fix htaccess files on server
+        run: |
+          ssh -p 21098 -T ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            cd ~/public_html
+            
+            echo "=== Verifying .htaccess files ==="
+            
+            # Check root .htaccess
+            if [ ! -f .htaccess ]; then
+              echo "Creating root .htaccess..."
+              cat > .htaccess << 'ROOTHTACCESS'
+          # Redirect everything to /public
+          <IfModule mod_rewrite.c>
+              RewriteEngine On
+              RewriteRule ^(.*)$ public/$1 [L]
+          </IfModule>
+          ROOTHTACCESS
+            else
+              echo "✓ Root .htaccess exists"
+            fi
+            
+            # Check public/.htaccess (CRITICAL)
+            if [ ! -f public/.htaccess ]; then
+              echo "❌ public/.htaccess is MISSING! Creating it now..."
+              cat > public/.htaccess << 'PUBHTACCESS'
+          <IfModule mod_rewrite.c>
+              <IfModule mod_negotiation.c>
+                  Options -MultiViews -Indexes
+              </IfModule>
+
+              RewriteEngine On
+
+              # Handle Authorization Header
+              RewriteCond %{HTTP:Authorization} .
+              RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+              # Redirect Trailing Slashes If Not A Folder...
+              RewriteCond %{REQUEST_FILENAME} !-d
+              RewriteCond %{REQUEST_URI} (.+)/$
+              RewriteRule ^ %1 [L,R=301]
+
+              # Send Requests To Front Controller...
+              RewriteCond %{REQUEST_FILENAME} !-d
+              RewriteCond %{REQUEST_FILENAME} !-f
+              RewriteRule ^ index.php [L]
+          </IfModule>
+          PUBHTACCESS
+            else
+              echo "✓ public/.htaccess exists"
+            fi
+            
+            # Set proper permissions
+            chmod 644 .htaccess
+            chmod 644 public/.htaccess
+            
+            echo "=== .htaccess files verified ==="
+          ENDSSH
+      
+      - name: Upload .env file
+        run: |
+          ssh -p 21098 -T ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} "cat > ~/public_html/.env" << 'EOF'
+          ${{ secrets.ENV }}
+          EOF
+      
+      - name: Run post-deployment commands
+        timeout-minutes: 8
+        run: |
+          ssh -p 21098 -T -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
+            ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} bash --noprofile --norc -s << 'ENDSSH'
+            set -euo pipefail
+            cd ~/public_html
+
+            php_usable() {
+              local bin="$1"
+              local ini="${2:-}"
+              if [ ! -x "$bin" ]; then
+                return 1
+              fi
+              if [ -n "$ini" ]; then
+                "$bin" -c "$ini" -r 'exit((version_compare(PHP_VERSION,"8.3.0",">=") && extension_loaded("pdo") && extension_loaded("pdo_mysql") && extension_loaded("dom") && extension_loaded("mbstring")) ? 0 : 1);' 2>/dev/null
+              else
+                "$bin" -r 'exit((version_compare(PHP_VERSION,"8.3.0",">=") && extension_loaded("pdo") && extension_loaded("pdo_mysql") && extension_loaded("dom") && extension_loaded("mbstring")) ? 0 : 1);' 2>/dev/null
+              fi
+            }
+
+            PHP_BIN=""
+            PHP_INI=""
+
+            CANDIDATES=(
+              "/usr/local/bin/ea-php84|"
+              "/opt/cpanel/ea-php84/root/usr/bin/php|"
+              "/opt/alt/php84/usr/bin/php|"
+              "/opt/alt/php84/usr/bin/php|/opt/alt/default_php_ini/php84.ini"
+              "/usr/local/bin/ea-php83|"
+              "/opt/cpanel/ea-php83/root/usr/bin/php|"
+              "/opt/alt/php83/usr/bin/php|"
+              "/opt/alt/php83/usr/bin/php|/opt/alt/default_php_ini/php83.ini"
+            )
+
+            for candidate in "${CANDIDATES[@]}"; do
+              bin="${candidate%%|*}"
+              ini="${candidate#*|}"
+              if php_usable "$bin" "$ini"; then
+                PHP_BIN="$bin"
+                PHP_INI="$ini"
+                break
+              fi
+            done
+
+            if [ -z "$PHP_BIN" ]; then
+              echo "ERROR: No usable PHP 8.3+ binary with required extensions was found."
+              exit 1
+            fi
+
+            if [ -n "$PHP_INI" ]; then
+              echo "Using PHP: $($PHP_BIN -c "$PHP_INI" -r 'echo PHP_VERSION;' 2>/dev/null) ($PHP_BIN)"
+              echo "php.ini: $PHP_INI"
+              if command -v timeout >/dev/null 2>&1; then
+                run_php() { timeout --signal=TERM 90 "$PHP_BIN" -c "$PHP_INI" "$@"; }
+              else
+                run_php() { "$PHP_BIN" -c "$PHP_INI" "$@"; }
+              fi
+            else
+              echo "Using PHP: $($PHP_BIN -r 'echo PHP_VERSION;' 2>/dev/null) ($PHP_BIN)"
+              if command -v timeout >/dev/null 2>&1; then
+                run_php() { timeout --signal=TERM 90 "$PHP_BIN" "$@"; }
+              else
+                run_php() { "$PHP_BIN" "$@"; }
+              fi
+            fi
+
+            echo "=== DB connectivity check ==="
+            run_php -r '
+              require "vendor/autoload.php";
+              $app = require "bootstrap/app.php";
+              $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+              Illuminate\Support\Facades\DB::select("select 1");
+              echo "DB OK\n";
+            '
+
+            echo "=== Setting permissions ==="
+            chmod 644 .env
+            chmod -R 755 storage bootstrap/cache public
+            find storage -type f -exec chmod 644 {} \; 2>/dev/null || true
+            find storage -type d -exec chmod 755 {} \; 2>/dev/null || true
+
+            echo "=== Clearing bootstrap cache ==="
+            rm -f bootstrap/cache/*.php
+
+            echo "=== Running migrations ==="
+            set +e
+            run_php artisan migrate --force --no-interaction
+            MIGRATE_STATUS=$?
+            set -e
+            if [ "$MIGRATE_STATUS" -eq 124 ]; then
+              echo "ERROR: migrate timed out after 90s"
+              exit 1
+            fi
+            if [ "$MIGRATE_STATUS" -ne 0 ]; then
+              echo "ERROR: Migration failed."
+              exit 1
+            fi
+
+            echo "=== Clearing Laravel caches ==="
+            run_php artisan config:clear --no-interaction
+            run_php artisan route:clear --no-interaction
+            run_php artisan view:clear --no-interaction
+            run_php artisan event:clear --no-interaction || true
+            # Avoid DB-backed cache:clear hangs on shared hosts
+            rm -f bootstrap/cache/*.php
+            echo "Skipped cache:clear (removed bootstrap cache files instead)"
+
+            echo "=== Creating storage symlink ==="
+            run_php artisan storage:link --no-interaction || echo "Storage link exists"
+
+            echo "=== Caching configuration ==="
+            run_php artisan config:cache --no-interaction
+            run_php artisan route:cache --no-interaction || echo "route:cache skipped (non-fatal)"
+            run_php artisan view:cache --no-interaction || echo "view:cache skipped (non-fatal)"
+
+            echo "=== Testing Laravel ==="
+            run_php artisan --version --no-interaction
+
+            echo "Deployment completed successfully!"
+            echo "Site: https://ratalfoods.ca"
+            ls -la .htaccess public/.htaccess
+            chmod +x queue-worker.sh || true
+          ENDSSH
