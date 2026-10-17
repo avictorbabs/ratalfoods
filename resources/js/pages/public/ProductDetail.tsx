@@ -67,6 +67,12 @@ function DetailAccordion({ title, children, defaultOpen = false }: { title: stri
 
 export default function ProductDetail({ product, reviewStats }: ProductDetailProps) {
     const [quantity, setQuantity] = useState(1);
+    const mediaItems: { type: 'image' | 'video'; url: string }[] = [
+        ...(product.image_url ? [{ type: 'image' as const, url: product.image_url }] : []),
+        ...(product.gallery ?? []).filter((item) => item.url && item.url !== product.image_url),
+    ];
+    const [activeIndex, setActiveIndex] = useState(0);
+    const activeMedia = mediaItems[activeIndex] ?? null;
     const [reviewDialogOpen, setReviewDialogOpen] = useState(
         () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('review') === '1',
     );
@@ -135,9 +141,13 @@ export default function ProductDetail({ product, reviewStats }: ProductDetailPro
 
                     <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                            <div className="border-border bg-muted relative aspect-square overflow-hidden rounded-xl border shadow-sm">
-                                {product.image_url ? (
-                                    <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+                            <div className="border-border bg-muted relative aspect-[4/3] overflow-hidden rounded-xl border shadow-sm">
+                                {activeMedia ? (
+                                    activeMedia.type === 'video' ? (
+                                        <video key={activeMedia.url} src={activeMedia.url} controls className="h-full w-full object-contain" />
+                                    ) : (
+                                        <img src={activeMedia.url} alt={product.name} className="h-full w-full object-contain" />
+                                    )
                                 ) : (
                                     <div className="bg-muted h-full w-full" />
                                 )}
@@ -149,6 +159,32 @@ export default function ProductDetail({ product, reviewStats }: ProductDetailPro
                                     </div>
                                 )}
                             </div>
+
+                            {mediaItems.length > 1 && (
+                                <div className="mt-3 flex gap-2 overflow-x-auto pb-1" role="list" aria-label="Product images">
+                                    {mediaItems.map((item, index) => (
+                                        <button
+                                            key={`${item.url}-${index}`}
+                                            type="button"
+                                            role="listitem"
+                                            onClick={() => setActiveIndex(index)}
+                                            aria-label={`Show image ${index + 1}`}
+                                            aria-current={index === activeIndex}
+                                            className={`bg-muted relative h-16 w-20 shrink-0 overflow-hidden rounded-md border-2 transition sm:h-20 sm:w-24 ${
+                                                index === activeIndex ? 'border-primary' : 'border-border opacity-70 hover:opacity-100'
+                                            }`}
+                                        >
+                                            {item.type === 'video' ? (
+                                                <span className="font-body text-muted-foreground flex h-full w-full items-center justify-center text-[10px] uppercase">
+                                                    Video
+                                                </span>
+                                            ) : (
+                                                <img src={item.url} alt="" className="h-full w-full object-cover" />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </motion.div>
 
                         <motion.div
