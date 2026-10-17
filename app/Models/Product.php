@@ -69,7 +69,12 @@ class Product extends Model
 
                 return PublicMediaUrl::resolveGallery(is_array($decoded) ? $decoded : null);
             },
-            set: fn (?array $value) => PublicMediaUrl::normalizeGalleryForStorage($value),
+            // Return JSON: an array from a mutator is read by Eloquent as several columns.
+            set: function (?array $value) {
+                $normalized = PublicMediaUrl::normalizeGalleryForStorage($value);
+
+                return $normalized === null ? null : json_encode($normalized);
+            },
         );
     }
 
