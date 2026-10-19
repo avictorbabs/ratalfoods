@@ -122,6 +122,9 @@ class ProductController extends Controller
 
         if ($request->hasFile('product_image')) {
             $imageUrl = $this->storePublicFile($request->file('product_image'), 'products');
+        } elseif (filled($request->input('product_image_url'))) {
+            // Reuse an image that is already uploaded (or hosted elsewhere) instead of uploading a duplicate.
+            $imageUrl = trim((string) $request->input('product_image_url'));
         }
 
         $gallery = $request->input('existing_gallery', []);

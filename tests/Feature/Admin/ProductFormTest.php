@@ -121,4 +121,30 @@ class ProductFormTest extends TestCase
 
         $response->assertSessionHasErrors(['variations.0.options.0.label']);
     }
+
+    public function test_a_product_can_reuse_an_uploaded_image_by_pasting_its_url()
+    {
+        $url = url('/storage/products/existing.jpg');
+
+        $this->actingAs($this->admin())
+            ->post('/admin/products', $this->payload([
+                'product_image_url' => $url,
+                'existing_gallery' => json_encode([['type' => 'image', 'url' => url('/storage/products/gallery/g.jpg')]]),
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $product = Product::query()->sole();
+        $this->assertSame($url, $product->image_url);
+        $this->assertSame(url('/storage/products/gallery/g.jpg'), $product->gallery[0]['url']);
+        $this->assertSame('products/existing.jpg', $product->getRawOriginal('image_url'));
+    }
+
+    public function test_a_pasted_image_address_must_be_a_web_address()
+    {
+        $this->actingAs($this->admin())
+            ->post('/admin/products', $this->payload(['product_image_url' => 'javascript:alert(1)']))
+            ->assertSessionHasErrors('product_image_url');
+
+        $this->assertDatabaseCount('products', 0);
+    }
 }

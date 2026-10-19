@@ -43,14 +43,15 @@ class ProductRequest extends FormRequest
             'sale_ends_at' => ['nullable', 'date', 'after_or_equal:sale_starts_at'],
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')],
             'product_image' => [
-                $hasExistingImage ? 'nullable' : 'required',
+                ($hasExistingImage || filled($this->input('product_image_url'))) ? 'nullable' : 'required',
                 'file', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120',
             ],
+            'product_image_url' => ['nullable', 'url:http,https', 'max:2048'],
             'gallery_files' => ['nullable', 'array'],
             'gallery_files.*' => ['file', 'mimes:jpg,jpeg,png,webp,gif,mp4,webm,mov', 'max:20480'],
             'existing_gallery' => ['nullable', 'array'],
             'existing_gallery.*.type' => ['required_with:existing_gallery', 'in:image,video'],
-            'existing_gallery.*.url' => ['required_with:existing_gallery', 'string', 'max:2048'],
+            'existing_gallery.*.url' => ['required_with:existing_gallery', 'string', 'max:2048', 'regex:#^(https?://|products/|/)#'],
             'stock_quantity' => ['required', 'integer', 'min:0'],
             'is_featured' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
@@ -74,7 +75,8 @@ class ProductRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'product_image.required' => 'Please upload a product image.',
+            'product_image.required' => 'Please upload a product image or paste the URL of one.',
+            'product_image_url.url' => 'That does not look like a web address. It should start with https://',
         ];
     }
 

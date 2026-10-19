@@ -1,20 +1,14 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
-import { FormEvent, KeyboardEvent, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/layouts/dashboard-layout';
 import type { ProductVariation } from '@/types/ratalfoods';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
+import { FormEvent, KeyboardEvent, useMemo, useState } from 'react';
 
 type GalleryItem = {
     type: 'image' | 'video';
@@ -57,6 +51,7 @@ type FormData = {
     sale_ends_at: string;
     category_id: string;
     product_image: File | null;
+    product_image_url: string;
     gallery_files: File[];
     existing_gallery: GalleryItem[];
     stock_quantity: number;
@@ -99,6 +94,39 @@ function emptyVariation(): ProductVariation {
     };
 }
 
+function CopyableUrl({ url }: { url: string }) {
+    const [copied, setCopied] = useState(false);
+
+    const copy = async () => {
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1500);
+        } catch {
+            // Clipboard can be blocked; the URL is still selectable in the box.
+        }
+    };
+
+    return (
+        <div className="mt-1.5 flex items-center gap-1.5">
+            <input
+                readOnly
+                value={url}
+                onFocus={(event) => event.currentTarget.select()}
+                className="border-input bg-muted/40 text-muted-foreground min-w-0 flex-1 truncate rounded-md border px-2 py-1 font-mono text-[11px]"
+                aria-label="Image URL"
+            />
+            <button
+                type="button"
+                onClick={() => void copy()}
+                className="border-border hover:bg-muted shrink-0 rounded-md border px-2 py-1 text-[11px]"
+            >
+                {copied ? 'Copied' : 'Copy'}
+            </button>
+        </div>
+    );
+}
+
 export default function ProductForm({ product, categoryOptions }: ProductFormProps) {
     const isEditing = product !== null;
     const [tagInput, setTagInput] = useState('');
@@ -110,11 +138,9 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
         sale_price: product?.sale_price ?? '',
         sale_starts_at: toDatetimeLocal(product?.sale_starts_at),
         sale_ends_at: toDatetimeLocal(product?.sale_ends_at),
-        category_id:
-            product?.category_id != null
-                ? String(product.category_id)
-                : (categoryOptions[0]?.value ?? ''),
+        category_id: product?.category_id != null ? String(product.category_id) : (categoryOptions[0]?.value ?? ''),
         product_image: null,
+        product_image_url: '',
         gallery_files: [],
         existing_gallery: product?.gallery ?? [],
         stock_quantity: product?.stock_quantity ?? 0,
@@ -133,9 +159,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
             .map((variation) => ({
                 ...variation,
                 options: variation.options
-                    .filter(
-                        (option) => option.label.trim() !== '',
-                    )
+                    .filter((option) => option.label.trim() !== '')
                     .map((option) => ({
                         ...option,
                         value: slugify(option.label),
@@ -159,8 +183,8 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
             return URL.createObjectURL(data.product_image);
         }
 
-        return product?.image_url ?? null;
-    }, [data.product_image, product?.image_url]);
+        return data.product_image_url.trim() || product?.image_url || null;
+    }, [data.product_image, data.product_image_url, product?.image_url]);
 
     const productImageRequired = !isEditing || !product?.image_url;
 
@@ -169,7 +193,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
             data.gallery_files.map((file) => ({
                 file,
                 url: URL.createObjectURL(file),
-                type: file.type.startsWith('video/') ? 'video' as const : 'image' as const,
+                type: file.type.startsWith('video/') ? ('video' as const) : ('image' as const),
             })),
         [data.gallery_files],
     );
@@ -223,6 +247,30 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
         );
     };
 
+    const [galleryUrl, setGalleryUrl] = useState('');
+    const [galleryUrlError, setGalleryUrlError] = useState<string | null>(null);
+
+    const addGalleryUrl = () => {
+        const url = galleryUrl.trim();
+
+        if (!/^https?:\/\/\S+$/i.test(url)) {
+            setGalleryUrlError('Paste a full web address starting with https://');
+
+            return;
+        }
+
+        if (data.existing_gallery.some((item) => item.url === url)) {
+            setGalleryUrlError('That image is already in the gallery.');
+
+            return;
+        }
+
+        const isVideo = /\.(mp4|webm|mov)(\?.*)?$/i.test(url);
+        setData('existing_gallery', [...data.existing_gallery, { type: isVideo ? 'video' : 'image', url }]);
+        setGalleryUrl('');
+        setGalleryUrlError(null);
+    };
+
     const removeExistingGalleryItem = (index: number) => {
         setData(
             'existing_gallery',
@@ -255,29 +303,22 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
             </div>
 
             <form onSubmit={submit} className="w-full space-y-8">
-                <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+                <section className="border-border rounded-xl border bg-white p-6 shadow-sm">
                     <h2 className="font-heading text-lg">Basic information</h2>
                     <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
-                            <Label htmlFor="name" required>Product name</Label>
-                            <Input
-                                id="name"
-                                required
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                className="mt-1.5"
-                            />
-                            {errors.name && (
-                                <p className="mt-1 font-body text-xs text-destructive">{errors.name}</p>
-                            )}
+                            <Label htmlFor="name" required>
+                                Product name
+                            </Label>
+                            <Input id="name" required value={data.name} onChange={(e) => setData('name', e.target.value)} className="mt-1.5" />
+                            {errors.name && <p className="font-body text-destructive mt-1 text-xs">{errors.name}</p>}
                         </div>
 
                         <div>
-                            <Label htmlFor="category_id" required>Category</Label>
-                            <Select
-                                value={data.category_id}
-                                onValueChange={(value) => setData('category_id', value)}
-                            >
+                            <Label htmlFor="category_id" required>
+                                Category
+                            </Label>
+                            <Select value={data.category_id} onValueChange={(value) => setData('category_id', value)}>
                                 <SelectTrigger id="category_id" className="mt-1.5">
                                     <SelectValue placeholder="Select a category" />
                                 </SelectTrigger>
@@ -289,11 +330,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {errors.category_id && (
-                                <p className="mt-1 font-body text-xs text-destructive">
-                                    {errors.category_id}
-                                </p>
-                            )}
+                            {errors.category_id && <p className="font-body text-destructive mt-1 text-xs">{errors.category_id}</p>}
                         </div>
 
                         <div>
@@ -318,7 +355,9 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                         </div>
 
                         <div className="sm:col-span-2 lg:col-span-4">
-                            <Label htmlFor="description" required>Description</Label>
+                            <Label htmlFor="description" required>
+                                Description
+                            </Label>
                             <Textarea
                                 id="description"
                                 required
@@ -326,104 +365,120 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                 onChange={(e) => setData('description', e.target.value)}
                                 className="mt-1.5 min-h-[120px]"
                             />
-                            {errors.description && (
-                                <p className="mt-1 font-body text-xs text-destructive">{errors.description}</p>
-                            )}
+                            {errors.description && <p className="font-body text-destructive mt-1 text-xs">{errors.description}</p>}
                         </div>
                     </div>
                 </section>
 
-                <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+                <section className="border-border rounded-xl border bg-white p-6 shadow-sm">
                     <h2 className="font-heading text-lg">Media</h2>
                     <div className="mt-4 grid gap-6 lg:grid-cols-2">
                         <div>
-                            <Label htmlFor="product_image" required={productImageRequired}>Product image</Label>
+                            <Label htmlFor="product_image" required={productImageRequired && data.product_image_url.trim() === ''}>
+                                Product image
+                            </Label>
                             <Input
                                 id="product_image"
                                 type="file"
                                 accept="image/*"
-                                required={productImageRequired}
+                                required={productImageRequired && data.product_image_url.trim() === ''}
                                 className="mt-1.5"
-                                onChange={(e) =>
-                                    setData('product_image', e.target.files?.[0] ?? null)
-                                }
+                                onChange={(e) => setData('product_image', e.target.files?.[0] ?? null)}
                             />
                             {productImagePreview && (
                                 <img
                                     src={productImagePreview}
                                     alt="Product preview"
-                                    className="mt-3 h-40 w-full rounded-lg border border-border object-cover"
+                                    className="border-border mt-3 h-40 w-full rounded-lg border object-cover"
                                 />
                             )}
-                            {errors.product_image && (
-                                <p className="mt-1 font-body text-xs text-destructive">
-                                    {errors.product_image}
-                                </p>
-                            )}
+                            {!data.product_image && product?.image_url && <CopyableUrl url={product.image_url} />}
+                            <div className="mt-3">
+                                <Label htmlFor="product_image_url">Or paste the URL of an image already uploaded</Label>
+                                <Input
+                                    id="product_image_url"
+                                    type="url"
+                                    inputMode="url"
+                                    placeholder="https://…/storage/products/example.jpg"
+                                    className="mt-1.5"
+                                    value={data.product_image_url}
+                                    disabled={data.product_image !== null}
+                                    onChange={(e) => setData('product_image_url', e.target.value)}
+                                />
+                                {errors.product_image_url && <p className="font-body text-destructive mt-1 text-xs">{errors.product_image_url}</p>}
+                            </div>
+                            {errors.product_image && <p className="font-body text-destructive mt-1 text-xs">{errors.product_image}</p>}
                         </div>
 
                         <div>
                             <Label htmlFor="gallery_files">Product gallery</Label>
-                            <p className="mt-1 font-body text-xs text-muted-foreground">
-                                Upload multiple images or videos for the product gallery.
-                            </p>
+                            <p className="font-body text-muted-foreground mt-1 text-xs">Upload multiple images or videos for the product gallery.</p>
                             <Input
                                 id="gallery_files"
                                 type="file"
                                 accept="image/*,video/*"
                                 multiple
                                 className="mt-1.5"
-                                onChange={(e) =>
-                                    setData('gallery_files', [
-                                        ...data.gallery_files,
-                                        ...Array.from(e.target.files ?? []),
-                                    ])
-                                }
+                                onChange={(e) => setData('gallery_files', [...data.gallery_files, ...Array.from(e.target.files ?? [])])}
                             />
+
+                            <div className="mt-3">
+                                <Label htmlFor="gallery_url">Or add an already uploaded image by URL</Label>
+                                <div className="mt-1.5 flex gap-2">
+                                    <Input
+                                        id="gallery_url"
+                                        type="url"
+                                        inputMode="url"
+                                        placeholder="https://…/storage/products/gallery/example.jpg"
+                                        value={galleryUrl}
+                                        onChange={(e) => {
+                                            setGalleryUrl(e.target.value);
+                                            setGalleryUrlError(null);
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                addGalleryUrl();
+                                            }
+                                        }}
+                                    />
+                                    <Button type="button" variant="outline" onClick={addGalleryUrl} disabled={galleryUrl.trim() === ''}>
+                                        Add
+                                    </Button>
+                                </div>
+                                {galleryUrlError && <p className="font-body text-destructive mt-1 text-xs">{galleryUrlError}</p>}
+                            </div>
 
                             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                                 {data.existing_gallery.map((item, index) => (
                                     <div key={`existing-${index}`} className="relative">
                                         {item.type === 'video' ? (
-                                            <video
-                                                src={item.url}
-                                                className="h-24 w-full rounded-md border border-border object-cover"
-                                            />
+                                            <video src={item.url} className="border-border h-24 w-full rounded-md border object-cover" />
                                         ) : (
-                                            <img
-                                                src={item.url}
-                                                alt=""
-                                                className="h-24 w-full rounded-md border border-border object-cover"
-                                            />
+                                            <img src={item.url} alt="" className="border-border h-24 w-full rounded-md border object-cover" />
                                         )}
                                         <button
                                             type="button"
                                             onClick={() => removeExistingGalleryItem(index)}
-                                            className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white"
+                                            className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white"
                                         >
                                             <X className="h-3 w-3" />
                                         </button>
+                                        <CopyableUrl url={item.url} />
                                     </div>
                                 ))}
 
                                 {newGalleryPreviews.map((item, index) => (
                                     <div key={`new-${index}`} className="relative">
                                         {item.type === 'video' ? (
-                                            <video
-                                                src={item.url}
-                                                className="h-24 w-full rounded-md border border-border object-cover"
-                                            />
+                                            <video src={item.url} className="border-border h-24 w-full rounded-md border object-cover" />
                                         ) : (
-                                            <img
-                                                src={item.url}
-                                                alt=""
-                                                className="h-24 w-full rounded-md border border-border object-cover"
-                                            />
+                                            <img src={item.url} alt="" className="border-border h-24 w-full rounded-md border object-cover" />
                                         )}
                                         <button
                                             type="button"
                                             onClick={() => removeNewGalleryFile(index)}
-                                            className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white"
+                                            className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white"
                                         >
                                             <X className="h-3 w-3" />
                                         </button>
@@ -434,11 +489,13 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                     </div>
                 </section>
 
-                <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+                <section className="border-border rounded-xl border bg-white p-6 shadow-sm">
                     <h2 className="font-heading text-lg">Pricing & inventory</h2>
                     <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                         <div>
-                            <Label htmlFor="price" required>Regular price ($)</Label>
+                            <Label htmlFor="price" required>
+                                Regular price ($)
+                            </Label>
                             <Input
                                 id="price"
                                 type="number"
@@ -449,9 +506,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                 onChange={(e) => setData('price', e.target.value)}
                                 className="mt-1.5"
                             />
-                            {errors.price && (
-                                <p className="mt-1 font-body text-xs text-destructive">{errors.price}</p>
-                            )}
+                            {errors.price && <p className="font-body text-destructive mt-1 text-xs">{errors.price}</p>}
                         </div>
 
                         <div>
@@ -491,32 +546,30 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                         </div>
 
                         <div>
-                            <Label htmlFor="stock_quantity" required>Stock quantity</Label>
+                            <Label htmlFor="stock_quantity" required>
+                                Stock quantity
+                            </Label>
                             <Input
                                 id="stock_quantity"
                                 type="number"
                                 min="0"
                                 required
                                 value={data.stock_quantity}
-                                onChange={(e) =>
-                                    setData('stock_quantity', Number(e.target.value))
-                                }
+                                onChange={(e) => setData('stock_quantity', Number(e.target.value))}
                                 className="mt-1.5"
                             />
                         </div>
                     </div>
                 </section>
 
-                <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+                <section className="border-border rounded-xl border bg-white p-6 shadow-sm">
                     <h2 className="font-heading text-lg">Product tags</h2>
-                    <p className="mt-1 font-body text-sm text-muted-foreground">
-                        Press Enter or comma to add a tag.
-                    </p>
+                    <p className="font-body text-muted-foreground mt-1 text-sm">Press Enter or comma to add a tag.</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                         {data.tags.map((tag) => (
                             <span
                                 key={tag}
-                                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 font-body text-sm text-primary"
+                                className="bg-primary/10 font-body text-primary inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm"
                             >
                                 {tag}
                                 <button
@@ -543,11 +596,11 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                     />
                 </section>
 
-                <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+                <section className="border-border rounded-xl border bg-white p-6 shadow-sm">
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <h2 className="font-heading text-lg">Product attributes & variations</h2>
-                            <p className="mt-1 font-body text-sm text-muted-foreground">
+                            <p className="font-body text-muted-foreground mt-1 text-sm">
                                 Add attributes like Size or Portion with values and price adjustments.
                             </p>
                         </div>
@@ -558,16 +611,11 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                     </div>
 
                     {data.variations.length === 0 ? (
-                        <p className="mt-4 font-body text-sm text-muted-foreground">
-                            No attributes yet. Customers will only see the regular price.
-                        </p>
+                        <p className="font-body text-muted-foreground mt-4 text-sm">No attributes yet. Customers will only see the regular price.</p>
                     ) : (
                         <div className="mt-4 space-y-6">
                             {data.variations.map((variation, variationIndex) => (
-                                <div
-                                    key={variationIndex}
-                                    className="rounded-lg border border-border p-4"
-                                >
+                                <div key={variationIndex} className="border-border rounded-lg border p-4">
                                     <div className="flex items-start gap-3">
                                         <div className="flex-1">
                                             <Label required>Attribute name</Label>
@@ -588,7 +636,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            className="mt-7 text-destructive"
+                                            className="text-destructive mt-7"
                                             onClick={() => removeVariation(variationIndex)}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -596,9 +644,9 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                     </div>
 
                                     <div className="mt-4 space-y-2">
-                                        <div className="hidden gap-2 font-body text-xs uppercase tracking-wider text-muted-foreground md:grid md:grid-cols-[1fr_1fr_120px_40px]">
+                                        <div className="font-body text-muted-foreground hidden gap-2 text-xs tracking-wider uppercase md:grid md:grid-cols-[1fr_1fr_120px_40px]">
                                             <span>
-                                                Value name<span className="ml-0.5 text-destructive">*</span>
+                                                Value name<span className="text-destructive ml-0.5">*</span>
                                             </span>
                                             <span>Slug (auto)</span>
                                             <span>Price +/-</span>
@@ -606,10 +654,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                         </div>
 
                                         {variation.options.map((option, optionIndex) => (
-                                            <div
-                                                key={optionIndex}
-                                                className="grid gap-2 md:grid-cols-[1fr_1fr_120px_40px]"
-                                            >
+                                            <div key={optionIndex} className="grid gap-2 md:grid-cols-[1fr_1fr_120px_40px]">
                                                 <Input
                                                     required
                                                     value={option.label}
@@ -643,9 +688,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                                         const options = [...variation.options];
                                                         options[optionIndex] = {
                                                             ...option,
-                                                            price_modifier: Number(
-                                                                e.target.value,
-                                                            ),
+                                                            price_modifier: Number(e.target.value),
                                                         };
                                                         updateVariation(variationIndex, {
                                                             ...variation,
@@ -658,9 +701,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => {
-                                                        const options = variation.options.filter(
-                                                            (_, i) => i !== optionIndex,
-                                                        );
+                                                        const options = variation.options.filter((_, i) => i !== optionIndex);
                                                         updateVariation(variationIndex, {
                                                             ...variation,
                                                             options:
@@ -709,38 +750,26 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                     )}
                 </section>
 
-                <section className="rounded-xl border border-border bg-white p-6 shadow-sm">
+                <section className="border-border rounded-xl border bg-white p-6 shadow-sm">
                     <div className="flex flex-wrap gap-6">
-                        <label className="flex items-center gap-2 font-body text-sm">
-                            <Checkbox
-                                checked={data.is_featured}
-                                onCheckedChange={(checked) =>
-                                    setData('is_featured', checked === true)
-                                }
-                            />
+                        <label className="font-body flex items-center gap-2 text-sm">
+                            <Checkbox checked={data.is_featured} onCheckedChange={(checked) => setData('is_featured', checked === true)} />
                             Featured product
                         </label>
-                        <label className="flex items-center gap-2 font-body text-sm">
-                            <Checkbox
-                                checked={data.is_active}
-                                onCheckedChange={(checked) =>
-                                    setData('is_active', checked === true)
-                                }
-                            />
+                        <label className="font-body flex items-center gap-2 text-sm">
+                            <Checkbox checked={data.is_active} onCheckedChange={(checked) => setData('is_active', checked === true)} />
                             Active on menu
                         </label>
-                        <label className="flex items-center gap-2 font-body text-sm">
+                        <label className="font-body flex items-center gap-2 text-sm">
                             <Checkbox
                                 checked={data.available_for_pickup}
-                                onCheckedChange={(checked) =>
-                                    setData('available_for_pickup', checked === true)
-                                }
+                                onCheckedChange={(checked) => setData('available_for_pickup', checked === true)}
                             />
                             Available for pickup
                         </label>
                     </div>
 
-                    <div className="mt-6 flex gap-3 border-t border-border pt-4">
+                    <div className="border-border mt-6 flex gap-3 border-t pt-4">
                         <Button type="submit" disabled={processing}>
                             {processing ? 'Saving…' : isEditing ? 'Save Changes' : 'Create Product'}
                         </Button>
