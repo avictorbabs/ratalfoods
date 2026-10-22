@@ -39,7 +39,7 @@ function resolveTags(product: Product): string[] {
     const tags = [product.category];
 
     if (product.available_for_pickup) {
-        tags.push('Pickup Ready');
+        tags.push('Pickup Available');
     }
 
     return tags;
@@ -155,7 +155,7 @@ export default function ProductDetail({ product, reviewStats }: ProductDetailPro
                                 {product.available_for_pickup && inStock && (
                                     <div className="bg-primary text-primary-foreground absolute top-4 left-4 flex items-center gap-1 rounded-sm px-2.5 py-1">
                                         <Clock className="h-3 w-3" />
-                                        <span className="font-body text-[10px] tracking-wider uppercase">Pickup Ready</span>
+                                        <span className="font-body text-[10px] tracking-wider uppercase">Pickup Available</span>
                                     </div>
                                 )}
                             </div>
@@ -287,14 +287,13 @@ export default function ProductDetail({ product, reviewStats }: ProductDetailPro
                                 <span className="font-body text-foreground text-sm font-semibold">${formatPrice(lineTotal)}</span>
                             </div>
 
-                            {product.available_for_pickup && inStock && (
-                                <div className="bg-primary/10 mt-4 flex items-center gap-2 rounded-md p-3">
-                                    <Clock className="text-primary h-4 w-4" />
-                                    <span className="font-body text-foreground text-sm font-medium">
-                                        Store Pickup: {product.preparation_time || 'Ready in 2 Hours'}
-                                    </span>
-                                </div>
-                            )}
+                            {/* Always shown: it is information about how to collect, not the "Pickup Available" badge. */}
+                            <div className="bg-primary/10 mt-4 flex items-center gap-2 rounded-md p-3">
+                                <Clock className="text-primary h-4 w-4" />
+                                <span className="font-body text-foreground text-sm font-medium">
+                                    Store Pickup: {product.preparation_time || 'Ready in 2 Hours'}
+                                </span>
+                            </div>
 
                             <Button
                                 className="font-body mt-6 h-12 w-full gap-2 text-sm tracking-wide uppercase"

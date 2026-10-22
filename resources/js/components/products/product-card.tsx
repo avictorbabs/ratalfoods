@@ -37,7 +37,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                         <div className="absolute top-3 left-3 flex items-center gap-1 rounded-sm bg-accent/90 px-2 py-1 text-accent-foreground backdrop-blur-sm">
                             <Clock className="h-3 w-3" />
                             <span className="font-body text-[10px] uppercase tracking-wider">
-                                Pickup Ready
+                                Pickup Available
                             </span>
                         </div>
                     )}
