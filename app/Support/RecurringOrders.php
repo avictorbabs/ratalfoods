@@ -61,10 +61,7 @@ class RecurringOrders
             'delivery_slot' => $pickup ? null : substr((string) $data['delivery_time'], 0, 5),
             'delivery_address' => $pickup ? null : $first->delivery_address,
             'notes' => $first->notes,
-            'items' => collect($data['items'])->map(fn (array $item) => [
-                'product_id' => (int) $item['product_id'],
-                'quantity' => (int) $item['quantity'],
-            ])->values()->all(),
+            'items' => collect($data['items'])->map(fn (array $item) => LinePricing::normalizeItem($item))->values()->all(),
             'next_service_date' => $serviceDate->addDays($interval)->toDateString(),
             'ends_on' => $endsOn?->toDateString(),
             'skipped_dates' => [],
@@ -142,6 +139,7 @@ class RecurringOrders
                 'product_name' => $line['product_name'],
                 'quantity' => $line['quantity'],
                 'price' => $line['price'],
+                'options' => $line['options']['variants'] === [] && $line['options']['addons'] === [] ? null : $line['options'],
             ])->all());
 
             return $order->load('items');

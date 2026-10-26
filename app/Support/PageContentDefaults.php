@@ -265,6 +265,14 @@ class PageContentDefaults
                 'title' => 'Our Menu',
                 'body' => 'Authentic Nigerian dishes, crafted with heritage and served fresh',
             ],
+            'pickup_info' => [
+                'heading' => 'Store Hours',
+                'hours' => '',
+                'ready_label' => 'Typical ready time',
+                'ready_time' => '',
+                'note' => 'Please choose a pickup time during store hours.',
+                'lead_hours' => 24,
+            ],
             'details_button_label' => 'Read Menu Details',
             'details' => [
                 [

@@ -16,8 +16,11 @@ use App\Models\Product;
 use App\Models\StoreSetting;
 use App\Support\CouponException;
 use App\Support\GuestSignup;
+use App\Support\LineOptionException;
+use App\Support\LinePricing;
 use App\Support\Loyalty;
 use App\Support\LoyaltyException;
+use App\Support\PickupLeadTime;
 use App\Support\RecurringOrderException;
 use App\Support\RecurringOrders;
 use Carbon\Carbon;
@@ -118,6 +121,17 @@ class OrderController extends Controller
         if ($method === CollectionMethod::Pickup) {
             $pickupDate = $request->validated('pickup_date');
             $pickupSlot = $request->validated('pickup_time');
+
+            $leadHours = PickupLeadTime::hoursFor($products);
+
+            if (! PickupLeadTime::allows((string) $pickupDate, (string) $pickupSlot, $leadHours)) {
+                $hours = $leadHours;
+                $earliest = PickupLeadTime::earliest($leadHours);
+
+                throw ValidationException::withMessages([
+                    'pickup_time' => "Orders need about {$hours} hours to prepare. The earliest pickup is ".$earliest->format('F j').' at '.$earliest->format('g:i A').'. Please choose a later date or time.',
+                ]);
+            }
             $pickupTime = Carbon::parse($pickupDate)->format('F j, Y').' at '.$pickupSlot;
         }
 
@@ -148,15 +162,27 @@ class OrderController extends Controller
 
             foreach ($request->validated('items') as $item) {
                 $product = $products[$item['product_id']];
-                $unitPrice = $product->effectivePrice();
+                $normalized = LinePricing::normalizeItem($item);
+
+                // The price comes from the product as it is now plus the chosen options, never from the browser.
+                try {
+                    $priced = LinePricing::resolve($product, $normalized['variants'], $normalized['addons']);
+                } catch (LineOptionException $exception) {
+                    throw ValidationException::withMessages(['items' => $exception->getMessage()]);
+                }
+
+                $unitPrice = $priced['unit_price'];
                 $lineTotal = $unitPrice * (int) $item['quantity'];
                 $subtotal += $lineTotal;
 
                 $lineItems[] = [
                     'product_id' => $product->id,
-                    'product_name' => $product->name,
+                    'product_name' => $priced['name'],
                     'quantity' => (int) $item['quantity'],
                     'price' => $unitPrice,
+                    'options' => $priced['variants'] === [] && $priced['addons'] === []
+                        ? null
+                        : ['variants' => $priced['variants'], 'addons' => $priced['addons']],
                 ];
             }
 

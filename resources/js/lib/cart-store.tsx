@@ -10,6 +10,9 @@ export type CartItem = {
     image_url: string | null;
     quantity: number;
     variant_label?: string | null;
+    /** variation name => chosen option value (the server works out the price from these) */
+    variants?: Record<string, string>;
+    addons?: { key: string; quantity: number }[];
 };
 
 type AddItemOptions = {
@@ -17,6 +20,8 @@ type AddItemOptions = {
     variantKey?: string;
     variantLabel?: string;
     unitPrice?: number;
+    variants?: Record<string, string>;
+    addons?: { key: string; quantity: number }[];
 };
 
 type CartContextValue = {
@@ -103,6 +108,8 @@ export function CartProvider({ children }: PropsWithChildren) {
                     image_url: product.image_url,
                     quantity: quantityToAdd,
                     variant_label: options?.variantLabel ?? null,
+                    variants: options?.variants,
+                    addons: options?.addons,
                 },
             ];
         });

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PageRequest;
 use App\Models\PageContent;
 use App\Support\PageContentDefaults;
+use App\Support\PickupInfo;
 use App\Support\PublicMediaUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -18,10 +19,17 @@ class PageController extends Controller
     {
         $slug = $this->assertSlug($page);
 
+        $content = PageContent::resolved($slug);
+
+        if ($slug === 'menu') {
+            // Show what customers currently see, including values that come from Store Settings.
+            $content['pickup_info'] = PickupInfo::resolve($content);
+        }
+
         return Inertia::render('admin/Pages/Edit', [
             'slug' => $slug,
             'label' => PageContentDefaults::label($slug),
-            'pageContent' => PageContent::resolved($slug),
+            'pageContent' => $content,
         ]);
     }
 

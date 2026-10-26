@@ -886,6 +886,49 @@ export default function PageEdit({ slug, label, pageContent }: EditProps) {
                             })}
                         </Section>
 
+                        <Section title="Checkout pickup info" columns={2}>
+                            <p className="text-muted-foreground font-body text-sm sm:col-span-2 lg:col-span-2">
+                                The store hours box customers see at checkout when they choose store pickup.
+                            </p>
+                            <TextField
+                                id="pickup_heading"
+                                label="Heading"
+                                value={asString(asRecord(content.pickup_info).heading)}
+                                onChange={(value) => setContent(['pickup_info', 'heading'], value)}
+                            />
+                            <TextField
+                                id="pickup_hours"
+                                label="Store hours"
+                                value={asString(asRecord(content.pickup_info).hours)}
+                                onChange={(value) => setContent(['pickup_info', 'hours'], value)}
+                            />
+                            <TextField
+                                id="pickup_ready_label"
+                                label="Ready time label"
+                                value={asString(asRecord(content.pickup_info).ready_label)}
+                                onChange={(value) => setContent(['pickup_info', 'ready_label'], value)}
+                            />
+                            <TextField
+                                id="pickup_ready_time"
+                                label="Typical ready time"
+                                value={asString(asRecord(content.pickup_info).ready_time)}
+                                onChange={(value) => setContent(['pickup_info', 'ready_time'], value)}
+                            />
+                            <TextField
+                                id="pickup_lead_hours"
+                                label="Hours needed before pickup (customers cannot pick sooner)"
+                                value={asString(asRecord(content.pickup_info).lead_hours)}
+                                onChange={(value) => setContent(['pickup_info', 'lead_hours'], value.replace(/\D/g, ''))}
+                            />
+                            <TextField
+                                id="pickup_note"
+                                label="Note under the hours"
+                                value={asString(asRecord(content.pickup_info).note)}
+                                onChange={(value) => setContent(['pickup_info', 'note'], value)}
+                                className="lg:col-span-2"
+                            />
+                        </Section>
+
                         <Section title="Menu boards" columns={3}>
                             <ImageField
                                 id="board_left_top"

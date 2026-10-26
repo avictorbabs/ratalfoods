@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ProductRequest extends FormRequest
@@ -16,7 +17,7 @@ class ProductRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        foreach (['variations', 'tags', 'existing_gallery'] as $field) {
+        foreach (['variations', 'addons', 'tags', 'existing_gallery'] as $field) {
             $value = $this->input($field);
 
             if (is_string($value)) {
@@ -66,6 +67,11 @@ class ProductRequest extends FormRequest
             'variations.*.options.*.value' => ['required', 'string', 'max:100'],
             'variations.*.options.*.label' => ['required', 'string', 'max:100'],
             'variations.*.options.*.price_modifier' => ['required', 'numeric'],
+            'addons' => ['nullable', 'array', 'max:30'],
+            'addons.*.key' => ['nullable', 'string', 'max:100', 'regex:/^[a-z0-9-]+$/'],
+            'addons.*.name' => ['required', 'string', 'max:100'],
+            'addons.*.price' => ['required', 'numeric', 'min:0', 'max:10000'],
+            'addons.*.max_qty' => ['nullable', 'integer', 'min:1', 'max:99'],
         ];
     }
 
@@ -108,6 +114,39 @@ class ProductRequest extends FormRequest
             'serves' => $this->validated('serves'),
             'tags' => array_values(array_filter($this->validated('tags') ?? [])),
             'variations' => $this->validated('variations') ?? [],
+            'addons' => $this->addonList(),
         ];
+    }
+
+    /**
+     * Add-ons with a stable key made from the name (kept unique within the product),
+     * so carts and orders can refer to them.
+     *
+     * @return list<array{key: string, name: string, price: float, max_qty: int|null}>
+     */
+    private function addonList(): array
+    {
+        $used = [];
+        $list = [];
+
+        foreach ((array) ($this->validated('addons') ?? []) as $addon) {
+            // An add-on that is renamed keeps its key, so carts and past orders still match it.
+            $base = filled($addon['key'] ?? null) ? $addon['key'] : (Str::slug($addon['name']) ?: 'extra');
+            $key = $base;
+
+            for ($i = 2; in_array($key, $used, true); $i++) {
+                $key = $base.'-'.$i;
+            }
+
+            $used[] = $key;
+            $list[] = [
+                'key' => $key,
+                'name' => trim($addon['name']),
+                'price' => round((float) $addon['price'], 2),
+                'max_qty' => filled($addon['max_qty'] ?? null) ? (int) $addon['max_qty'] : null,
+            ];
+        }
+
+        return $list;
     }
 }

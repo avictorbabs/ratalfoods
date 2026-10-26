@@ -37,7 +37,7 @@ class GuestAccountLinkingTest extends TestCase
 
         return [
             'customer_name' => $name, 'customer_email' => $email, 'customer_phone' => '555-0100',
-            'collection_method' => 'pickup', 'pickup_date' => now()->addDay()->toDateString(), 'pickup_time' => '4:00 PM',
+            'collection_method' => 'pickup', 'pickup_date' => now()->addDays(3)->toDateString(), 'pickup_time' => '4:00 PM',
             'payment_method' => 'cash_on_delivery', 'items' => [['product_id' => $product->id, 'quantity' => 1]],
         ];
     }

@@ -7,7 +7,7 @@ import { useCart } from '@/lib/cart-store';
 import { formatPrice } from '@/lib/price';
 import { getProductPricing } from '@/lib/product-pricing';
 import { cn } from '@/lib/utils';
-import type { Product, ProductReview, ProductReviewStats, ProductVariation } from '@/types/ratalfoods';
+import type { Product, ProductAddon, ProductReview, ProductReviewStats, ProductVariation } from '@/types/ratalfoods';
 import { Head, Link } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { AlertCircle, ArrowLeft, ChevronDown, Clock, Minus, Plus, ShoppingBag, Star, Store } from 'lucide-react';
@@ -86,6 +86,14 @@ export default function ProductDetail({ product, reviewStats }: ProductDetailPro
     const pricing = useMemo(() => getProductPricing(product), [product]);
     const basePrice = pricing.effectivePrice;
 
+    // Optional extras: key => how many the buyer wants (per dish).
+    const addonList = useMemo(() => (product.addons ?? []).filter((addon) => addon.name.trim() !== ''), [product.addons]);
+    const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
+    const setAddonQuantity = (addon: ProductAddon, next: number) => {
+        const max = addon.max_qty && addon.max_qty > 0 ? addon.max_qty : 99;
+        setAddonQuantities((current) => ({ ...current, [addon.key]: Math.max(0, Math.min(max, next)) }));
+    };
+
     const { unitPrice, variantLabel, variantKey } = useMemo(() => {
         let modifierTotal = 0;
         const labels: string[] = [];
@@ -102,12 +110,22 @@ export default function ProductDetail({ product, reviewStats }: ProductDetailPro
             }
         });
 
+        addonList.forEach((addon) => {
+            const count = addonQuantities[addon.key] ?? 0;
+
+            if (count > 0) {
+                modifierTotal += addon.price * count;
+                labels.push(count > 1 ? `${addon.name} ×${count}` : addon.name);
+                keyParts.push(`+${addon.key}×${count}`);
+            }
+        });
+
         return {
             unitPrice: basePrice + modifierTotal,
             variantLabel: labels.join(' · '),
             variantKey: keyParts.join('|'),
         };
-    }, [basePrice, selectedVariants, variations]);
+    }, [addonList, addonQuantities, basePrice, selectedVariants, variations]);
 
     const lineTotal = unitPrice * quantity;
     const inStock = product.in_stock ?? true;
@@ -122,6 +140,10 @@ export default function ProductDetail({ product, reviewStats }: ProductDetailPro
             variantKey,
             variantLabel,
             unitPrice,
+            variants: Object.fromEntries(variations.map((variation) => [variation.name, selectedVariants[variation.name] ?? ''])),
+            addons: addonList
+                .filter((addon) => (addonQuantities[addon.key] ?? 0) > 0)
+                .map((addon) => ({ key: addon.key, quantity: addonQuantities[addon.key] })),
         });
     };
 
@@ -255,6 +277,60 @@ export default function ProductDetail({ product, reviewStats }: ProductDetailPro
                                         </div>
                                     </div>
                                 ))}
+
+                                {addonList.length > 0 && (
+                                    <div>
+                                        <p className="font-body text-muted-foreground mb-3 text-xs font-semibold tracking-[0.2em] uppercase">
+                                            Optional extras
+                                        </p>
+                                        <div className="space-y-2">
+                                            {addonList.map((addon) => {
+                                                const count = addonQuantities[addon.key] ?? 0;
+                                                const max = addon.max_qty && addon.max_qty > 0 ? addon.max_qty : 99;
+
+                                                return (
+                                                    <div
+                                                        key={addon.key}
+                                                        className={cn(
+                                                            'flex items-center justify-between gap-3 rounded-md border px-3 py-2',
+                                                            count > 0 ? 'border-primary bg-primary/5' : 'border-border',
+                                                        )}
+                                                    >
+                                                        <div className="font-body min-w-0 text-sm">
+                                                            <p className="truncate">{addon.name}</p>
+                                                            <p className="text-muted-foreground text-xs">
+                                                                +${formatPrice(addon.price)} each{addon.max_qty ? ` · up to ${addon.max_qty}` : ''}
+                                                            </p>
+                                                        </div>
+                                                        <div className="border-border flex shrink-0 items-center rounded-md border">
+                                                            <button
+                                                                type="button"
+                                                                className="px-2.5 py-1.5 disabled:opacity-40"
+                                                                disabled={count === 0}
+                                                                onClick={() => setAddonQuantity(addon, count - 1)}
+                                                                aria-label={`Fewer ${addon.name}`}
+                                                            >
+                                                                <Minus className="h-3.5 w-3.5" />
+                                                            </button>
+                                                            <span className="font-body w-7 text-center text-sm" aria-live="polite">
+                                                                {count}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                className="px-2.5 py-1.5 disabled:opacity-40"
+                                                                disabled={count >= max}
+                                                                onClick={() => setAddonQuantity(addon, count + 1)}
+                                                                aria-label={`More ${addon.name}`}
+                                                            >
+                                                                <Plus className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div>
                                     <p className="font-body text-muted-foreground mb-3 text-xs font-semibold tracking-[0.2em] uppercase">Quantity</p>

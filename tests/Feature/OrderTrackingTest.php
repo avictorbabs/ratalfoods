@@ -37,7 +37,7 @@ class OrderTrackingTest extends TestCase
         ];
 
         if ($method === 'pickup') {
-            $payload += ['pickup_date' => now()->addDay()->toDateString(), 'pickup_time' => '4:00 PM'];
+            $payload += ['pickup_date' => now()->addDays(3)->toDateString(), 'pickup_time' => '4:00 PM'];
         } else {
             $payload += ['delivery_address' => '1 Main St Windsor', 'delivery_date' => now()->addDay()->toDateString(), 'delivery_time' => '16:00'];
             DeliveryFee::query()->create(['name' => 'Windsor', 'match_terms' => 'Windsor', 'fee' => 5, 'is_active' => true]);

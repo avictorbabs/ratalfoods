@@ -62,7 +62,22 @@ function matchDeliveryFee(address: string, zones: DeliveryFeeZone[]): { name: st
 
 type PaymentMethod = 'cash_on_delivery' | 'stripe';
 
-export default function Checkout({ deliveryFees = [], stripeEnabled = false }: { deliveryFees?: DeliveryFeeZone[]; stripeEnabled?: boolean }) {
+type PickupWindow = { date: string; minutes: number; hours: number };
+type PickupInfo = { heading: string; hours: string; ready_label: string; ready_time: string; note: string };
+
+export default function Checkout({
+    deliveryFees = [],
+    stripeEnabled = false,
+    pickupInfo,
+    earliestPickup: standardPickup,
+    quickPickup,
+}: {
+    deliveryFees?: DeliveryFeeZone[];
+    stripeEnabled?: boolean;
+    pickupInfo?: PickupInfo;
+    earliestPickup?: PickupWindow;
+    quickPickup?: PickupWindow;
+}) {
     const { items, subtotal, clearCart, replaceItems } = useCart();
     const { auth, storeSettings, flash, loyalty, errors: pageErrors } = usePage<SharedData & { errors: Record<string, string> }>().props;
     const taxRate = parseFloat(storeSettings.tax_rate) / 100;
@@ -119,7 +134,32 @@ export default function Checkout({ deliveryFees = [], stripeEnabled = false }: {
     const deliveryFee = matchedDelivery?.fee ?? 0;
     const total = subtotal - discount - loyaltyDiscount + tax + deliveryFee;
 
-    const cartPayload = items.map((item) => ({ product_id: item.product_id, quantity: item.quantity }));
+    // Items marked "Available for pickup" are ready to collect straight away, so the lead time
+    // only applies when the basket holds something that is not. The server checks this again.
+    const searchProducts = usePage<SharedData>().props.searchProducts;
+    const allQuickPickup =
+        items.length > 0 && items.every((item) => searchProducts.find((product) => product.id === item.product_id)?.available_for_pickup);
+    const pickupRule = allQuickPickup ? (quickPickup ?? standardPickup) : standardPickup;
+
+    // Orders need time to prepare: on the earliest allowed day only later slots are offered.
+    const slotMinutes = (slot: string): number => {
+        const [clock, period] = slot.split(' ');
+        const [hour, minute] = clock.split(':').map(Number);
+
+        return ((hour % 12) + (period === 'PM' ? 12 : 0)) * 60 + minute;
+    };
+    const availablePickupTimes =
+        pickupRule && data.pickup_date === pickupRule.date ? PICKUP_TIMES.filter((slot) => slotMinutes(slot) >= pickupRule.minutes) : PICKUP_TIMES;
+    const pickupDateTooSoon = Boolean(pickupRule && data.pickup_date && data.pickup_date < pickupRule.date);
+
+    // What was chosen (variations, extras). The server works out every price itself from these.
+    const linePayload = (item: (typeof items)[number]) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        variants: item.variants ?? {},
+        addons: item.addons ?? [],
+    });
+    const cartPayload = items.map(linePayload);
 
     const checkCoupon = async (code: string, silent = false) => {
         if (!code.trim() || items.length === 0) {
@@ -210,10 +250,7 @@ export default function Checkout({ deliveryFees = [], stripeEnabled = false }: {
                 use_points: pointsToUse > 0,
                 repeat: repeating ? repeatFrequency : null,
                 repeat_until: repeating && repeatUntil ? repeatUntil : null,
-                items: items.map((item) => ({
-                    product_id: item.product_id,
-                    quantity: item.quantity,
-                })),
+                items: items.map(linePayload),
             },
             {
                 preserveScroll: true,
@@ -586,7 +623,7 @@ export default function Checkout({ deliveryFees = [], stripeEnabled = false }: {
                                                                     <Input
                                                                         required
                                                                         type="date"
-                                                                        min={todayDateInput()}
+                                                                        min={pickupRule?.date ?? todayDateInput()}
                                                                         value={data.pickup_date}
                                                                         onChange={(event) => setData('pickup_date', event.target.value)}
                                                                         className="font-body h-10 pl-9 text-sm"
@@ -609,7 +646,7 @@ export default function Checkout({ deliveryFees = [], stripeEnabled = false }: {
                                                                         className="border-input bg-background font-body h-10 w-full appearance-none rounded-md border py-2 pr-8 pl-9 text-sm"
                                                                     >
                                                                         <option value="">Select time</option>
-                                                                        {PICKUP_TIMES.map((time) => (
+                                                                        {availablePickupTimes.map((time) => (
                                                                             <option key={time} value={time}>
                                                                                 {time}
                                                                             </option>
@@ -617,6 +654,17 @@ export default function Checkout({ deliveryFees = [], stripeEnabled = false }: {
                                                                     </select>
                                                                     <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2" />
                                                                 </div>
+                                                                {pickupRule && pickupRule.hours > 0 && (
+                                                                    <p className="font-body text-muted-foreground mt-1 text-xs">
+                                                                        Orders need about {pickupRule.hours} hours to prepare, so the earliest pickup
+                                                                        is shown.
+                                                                    </p>
+                                                                )}
+                                                                {data.pickup_date && availablePickupTimes.length === 0 && (
+                                                                    <p className="text-destructive mt-1 text-sm">
+                                                                        No pickup times left on this day. Please choose the next day.
+                                                                    </p>
+                                                                )}
                                                                 {errors.pickup_time && (
                                                                     <p className="text-destructive mt-1 text-sm">{errors.pickup_time}</p>
                                                                 )}
@@ -720,10 +768,10 @@ export default function Checkout({ deliveryFees = [], stripeEnabled = false }: {
                                                         >
                                                             <div>
                                                                 <p className="font-body text-muted-foreground text-xs font-medium tracking-wider uppercase">
-                                                                    Store Hours
+                                                                    {pickupInfo?.heading || 'Store Hours'}
                                                                 </p>
                                                                 <p className="font-body mt-0.5 text-sm">
-                                                                    {storeSettings.opening_hours || 'Mon–Sat: 11am – 9pm'}
+                                                                    {pickupInfo?.hours || storeSettings.opening_hours || 'Mon–Sat: 11am – 9pm'}
                                                                 </p>
                                                             </div>
                                                             <ChevronDown
@@ -734,11 +782,14 @@ export default function Checkout({ deliveryFees = [], stripeEnabled = false }: {
                                                         </button>
                                                         {hoursOpen && (
                                                             <div className="border-border font-body text-muted-foreground border-t px-4 py-3 text-sm">
-                                                                <p>{storeSettings.opening_hours || 'Mon–Sat: 11am – 9pm'}</p>
-                                                                {storeSettings.pickup_message && (
-                                                                    <p className="mt-2">Typical ready time: {storeSettings.pickup_message}</p>
+                                                                <p>{pickupInfo?.hours || storeSettings.opening_hours || 'Mon–Sat: 11am – 9pm'}</p>
+                                                                {(pickupInfo?.ready_time || storeSettings.pickup_message) && (
+                                                                    <p className="mt-2">
+                                                                        {pickupInfo?.ready_label || 'Typical ready time'}:{' '}
+                                                                        {pickupInfo?.ready_time || storeSettings.pickup_message}
+                                                                    </p>
                                                                 )}
-                                                                <p className="mt-2">Please choose a pickup time during store hours.</p>
+                                                                {pickupInfo?.note && <p className="mt-2">{pickupInfo.note}</p>}
                                                             </div>
                                                         )}
                                                     </div>
@@ -752,7 +803,11 @@ export default function Checkout({ deliveryFees = [], stripeEnabled = false }: {
                                                         disabled={
                                                             !data.customer_name ||
                                                             !data.customer_email ||
-                                                            (method === 'pickup' && (!data.pickup_date || !data.pickup_time)) ||
+                                                            (method === 'pickup' &&
+                                                                (!data.pickup_date ||
+                                                                    !data.pickup_time ||
+                                                                    pickupDateTooSoon ||
+                                                                    !availablePickupTimes.includes(data.pickup_time))) ||
                                                             (method === 'delivery_request' &&
                                                                 (!data.delivery_address ||
                                                                     !matchedDelivery ||

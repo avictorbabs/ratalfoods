@@ -79,7 +79,13 @@ class UserDashboardController extends Controller
         abort_unless($order->user_id === $request->user()->id, 404);
 
         $resolved = CartLines::resolve(
-            $order->items->map(fn ($item) => ['product_id' => $item->product_id, 'quantity' => $item->quantity])->all()
+            $order->items->map(fn ($item) => [
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                // Choose the same options again; prices come from today's menu.
+                'variants' => collect($item->options['variants'] ?? [])->mapWithKeys(fn ($row) => [$row['name'] => $row['value']])->all(),
+                'addons' => collect($item->options['addons'] ?? [])->map(fn ($row) => ['key' => $row['key'], 'quantity' => $row['quantity']])->all(),
+            ])->all()
         );
 
         return response()->json([

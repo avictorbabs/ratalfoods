@@ -20,6 +20,7 @@ export type Product = {
     sale_ends_at?: string | null;
     gallery?: { type: 'image' | 'video'; url: string }[] | null;
     variations: ProductVariation[] | null;
+    addons?: ProductAddon[] | null;
     tags: string[] | null;
 };
 
@@ -42,12 +43,22 @@ export type ProductVariationOption = {
     price_modifier: number;
 };
 
+export type ProductAddon = {
+    key: string;
+    name: string;
+    price: number;
+    max_qty: number | null;
+};
+
 export type ProductVariation = {
     name: string;
     options: ProductVariationOption[];
 };
 
-export type SearchProduct = Pick<Product, 'id' | 'name' | 'category' | 'price' | 'sale_price' | 'sale_starts_at' | 'sale_ends_at' | 'image_url'>;
+export type SearchProduct = Pick<
+    Product,
+    'id' | 'name' | 'category' | 'price' | 'sale_price' | 'sale_starts_at' | 'sale_ends_at' | 'image_url' | 'available_for_pickup'
+>;
 
 export type ProductCategoryItem = {
     name: string;

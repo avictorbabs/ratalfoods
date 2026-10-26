@@ -15,6 +15,8 @@ type GalleryItem = {
     url: string;
 };
 
+type AddonRow = { key: string; name: string; price: number | string; max_qty: number | string };
+
 type ProductRecord = {
     id: number;
     name: string;
@@ -35,6 +37,7 @@ type ProductRecord = {
     serves: string | null;
     tags: string[] | null;
     variations: ProductVariation[] | null;
+    addons: { key: string; name: string; price: number | string; max_qty: number | string | null }[] | null;
 };
 
 type ProductFormProps = {
@@ -62,6 +65,7 @@ type FormData = {
     serves: string;
     tags: string[];
     variations: ProductVariation[];
+    addons: AddonRow[];
 };
 
 function slugify(value: string): string {
@@ -151,6 +155,7 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
         serves: product?.serves ?? '',
         tags: product?.tags ?? [],
         variations: product?.variations?.length ? product.variations : [],
+        addons: (product?.addons ?? []).map((addon) => ({ ...addon, max_qty: addon.max_qty ?? '' })),
     });
 
     transform((formData) => {
@@ -170,6 +175,11 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
         return {
             ...formData,
             variations: JSON.stringify(variations),
+            addons: JSON.stringify(
+                formData.addons
+                    .filter((addon) => addon.name.trim() !== '')
+                    .map((addon) => ({ ...addon, price: Number(addon.price) || 0, max_qty: addon.max_qty === '' ? null : Number(addon.max_qty) })),
+            ),
             tags: JSON.stringify(formData.tags),
             existing_gallery: JSON.stringify(formData.existing_gallery),
             sale_price: formData.sale_price || null,
@@ -237,6 +247,13 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
         setData(
             'variations',
             data.variations.map((entry, i) => (i === index ? variation : entry)),
+        );
+    };
+
+    const updateAddon = (index: number, addon: AddonRow) => {
+        setData(
+            'addons',
+            data.addons.map((entry, i) => (i === index ? addon : entry)),
         );
     };
 
@@ -744,6 +761,99 @@ export default function ProductForm({ product, categoryOptions }: ProductFormPro
                                             Add value
                                         </Button>
                                     </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </section>
+
+                <section className="border-border rounded-xl border bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <h2 className="font-heading text-lg">Optional extras (add-ons)</h2>
+                            <p className="font-body text-muted-foreground mt-1 text-sm">
+                                Things a customer can add on top of this dish, such as an extra wrap. They choose how many, and the cost is added to
+                                the price.
+                            </p>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setData('addons', [...data.addons, { key: '', name: '', price: '', max_qty: '' }])}
+                        >
+                            <Plus className="h-4 w-4" />
+                            Add extra
+                        </Button>
+                    </div>
+
+                    {data.addons.length === 0 ? (
+                        <p className="font-body text-muted-foreground mt-4 text-sm">
+                            No extras yet. Customers will only see this dish&apos;s own options.
+                        </p>
+                    ) : (
+                        <div className="mt-4 space-y-3">
+                            <div className="font-body text-muted-foreground hidden grid-cols-[1fr_9rem_9rem_2.5rem] gap-3 text-xs tracking-wider uppercase sm:grid">
+                                <span>Item name</span>
+                                <span>Unit price ($)</span>
+                                <span>Max per dish</span>
+                                <span />
+                            </div>
+                            {data.addons.map((addon, index) => (
+                                <div key={index} className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_9rem_9rem_2.5rem]">
+                                    <div>
+                                        <Input
+                                            aria-label="Extra name"
+                                            placeholder="e.g. Extra wrap of amala"
+                                            value={addon.name}
+                                            onChange={(e) => updateAddon(index, { ...addon, name: e.target.value })}
+                                        />
+                                        {errors[`addons.${index}.name` as keyof typeof errors] && (
+                                            <p className="font-body text-destructive mt-1 text-xs">
+                                                {errors[`addons.${index}.name` as keyof typeof errors]}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Input
+                                            aria-label="Unit price"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={addon.price}
+                                            onChange={(e) => updateAddon(index, { ...addon, price: e.target.value })}
+                                        />
+                                        {errors[`addons.${index}.price` as keyof typeof errors] && (
+                                            <p className="font-body text-destructive mt-1 text-xs">
+                                                {errors[`addons.${index}.price` as keyof typeof errors]}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <Input
+                                        aria-label="Maximum per dish"
+                                        type="number"
+                                        min="1"
+                                        max="99"
+                                        placeholder="No limit"
+                                        value={addon.max_qty}
+                                        onChange={(e) => updateAddon(index, { ...addon, max_qty: e.target.value })}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-destructive hover:text-destructive"
+                                        onClick={() =>
+                                            setData(
+                                                'addons',
+                                                data.addons.filter((_, i) => i !== index),
+                                            )
+                                        }
+                                        aria-label="Remove extra"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
                                 </div>
                             ))}
                         </div>

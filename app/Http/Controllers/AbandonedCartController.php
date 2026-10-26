@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AbandonedCart;
 use App\Support\CartLines;
+use App\Support\LinePricing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,11 @@ class AbandonedCartController extends Controller
             'items' => ['present', 'array', 'max:50'],
             'items.*.product_id' => ['required', 'integer'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
+            'items.*.variants' => ['nullable', 'array'],
+            'items.*.variants.*' => ['nullable', 'string', 'max:100'],
+            'items.*.addons' => ['nullable', 'array', 'max:30'],
+            'items.*.addons.*.key' => ['required_with:items.*.addons', 'string', 'max:100'],
+            'items.*.addons.*.quantity' => ['required_with:items.*.addons', 'integer', 'min:0', 'max:99'],
         ]);
 
         $email = strtolower(trim($data['email']));
@@ -44,7 +50,7 @@ class AbandonedCartController extends Controller
             'name' => $data['name'] ?? $cart->name,
             'user_id' => $request->user()?->id,
             'items' => collect($data['items'])
-                ->map(fn (array $item) => ['product_id' => (int) $item['product_id'], 'quantity' => (int) $item['quantity']])
+                ->map(fn (array $item) => LinePricing::normalizeItem($item))
                 ->values()
                 ->all(),
             'token' => $cart->token ?: Str::random(48),

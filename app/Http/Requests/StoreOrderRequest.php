@@ -36,6 +36,11 @@ class StoreOrderRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
+            'items.*.variants' => ['nullable', 'array'],
+            'items.*.variants.*' => ['nullable', 'string', 'max:100'],
+            'items.*.addons' => ['nullable', 'array', 'max:30'],
+            'items.*.addons.*.key' => ['required_with:items.*.addons', 'string', 'max:100'],
+            'items.*.addons.*.quantity' => ['required_with:items.*.addons', 'integer', 'min:0', 'max:99'],
         ];
     }
 }

@@ -81,7 +81,7 @@ class HandleInertiaRequests extends Middleware
             'searchProducts' => fn () => Product::query()
                 ->where('is_active', true)
                 ->orderBy('name')
-                ->get(['id', 'name', 'category', 'price', 'sale_price', 'sale_starts_at', 'sale_ends_at', 'image_url']),
+                ->get(['id', 'name', 'category', 'price', 'sale_price', 'sale_starts_at', 'sale_ends_at', 'image_url', 'available_for_pickup']),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

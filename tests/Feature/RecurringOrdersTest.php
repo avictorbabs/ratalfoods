@@ -92,7 +92,7 @@ class RecurringOrdersTest extends TestCase
         auth()->logout();
         $this->post('/orders', [
             'customer_name' => 'G', 'customer_email' => 'g@example.com', 'customer_phone' => '555', 'collection_method' => 'pickup',
-            'pickup_date' => now()->addDay()->toDateString(), 'pickup_time' => '1:00 PM', 'payment_method' => 'cash_on_delivery',
+            'pickup_date' => now()->addDays(3)->toDateString(), 'pickup_time' => '1:00 PM', 'payment_method' => 'cash_on_delivery',
             'repeat' => 'weekly', 'items' => [['product_id' => $this->product->id, 'quantity' => 1]],
         ])->assertSessionHasErrors('repeat');
 

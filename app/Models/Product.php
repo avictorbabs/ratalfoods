@@ -29,6 +29,7 @@ class Product extends Model
         'in_stock',
         'stock_quantity',
         'variations',
+        'addons',
         'tags',
     ];
 
@@ -45,6 +46,7 @@ class Product extends Model
             'in_stock' => 'boolean',
             'stock_quantity' => 'integer',
             'variations' => 'array',
+            'addons' => 'array',
             'tags' => 'array',
         ];
     }

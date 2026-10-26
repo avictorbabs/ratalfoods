@@ -24,4 +24,9 @@ return [
     'recurring_lead_days' => (int) env('RECURRING_LEAD_DAYS', 2),
     'recurring_max_active' => (int) env('RECURRING_MAX_ACTIVE', 3),
 
+    /*
+    | The store's own time zone, used for pickup times and the pickup lead time.
+    */
+    'store_timezone' => env('STORE_TIMEZONE', 'America/Toronto'),
+
 ];

@@ -39,7 +39,7 @@ class LoyaltyTest extends TestCase
 
         $payload = [
             'customer_name' => 'Pat', 'customer_email' => 'pts@example.com', 'customer_phone' => '555-0100',
-            'collection_method' => 'pickup', 'pickup_date' => now()->addDay()->toDateString(), 'pickup_time' => '4:00 PM',
+            'collection_method' => 'pickup', 'pickup_date' => now()->addDays(3)->toDateString(), 'pickup_time' => '4:00 PM',
             'payment_method' => 'cash_on_delivery', 'items' => [['product_id' => $product->id, 'quantity' => 1]],
             ...$extra,
         ];
@@ -126,7 +126,7 @@ class LoyaltyTest extends TestCase
 
         $this->actingAs($user)->post('/orders', [
             'customer_name' => 'Pat', 'customer_email' => 'pts@example.com', 'customer_phone' => '555-0100',
-            'collection_method' => 'pickup', 'pickup_date' => now()->addDay()->toDateString(), 'pickup_time' => '4:00 PM',
+            'collection_method' => 'pickup', 'pickup_date' => now()->addDays(3)->toDateString(), 'pickup_time' => '4:00 PM',
             'payment_method' => 'cash_on_delivery', 'use_points' => true,
             'items' => [['product_id' => Product::query()->forceCreate(['name' => 'X', 'price' => 50, 'category' => 'M', 'is_active' => true])->id, 'quantity' => 1]],
         ])->assertSessionHasErrors('use_points');
@@ -137,7 +137,7 @@ class LoyaltyTest extends TestCase
         auth()->logout();
         $this->post('/orders', [
             'customer_name' => 'Pat', 'customer_email' => 'g@example.com', 'customer_phone' => '555-0100',
-            'collection_method' => 'pickup', 'pickup_date' => now()->addDay()->toDateString(), 'pickup_time' => '4:00 PM',
+            'collection_method' => 'pickup', 'pickup_date' => now()->addDays(3)->toDateString(), 'pickup_time' => '4:00 PM',
             'payment_method' => 'cash_on_delivery', 'use_points' => true,
             'items' => [['product_id' => Product::query()->first()->id, 'quantity' => 1]],
         ])->assertSessionHasErrors('use_points');

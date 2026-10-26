@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Coupon;
-use App\Models\Product;
+use App\Support\CartLines;
 use App\Support\CouponException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,17 +22,15 @@ class CouponController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
+            'items.*.variants' => ['nullable', 'array'],
+            'items.*.variants.*' => ['nullable', 'string', 'max:100'],
+            'items.*.addons' => ['nullable', 'array', 'max:30'],
+            'items.*.addons.*.key' => ['required_with:items.*.addons', 'string', 'max:100'],
+            'items.*.addons.*.quantity' => ['required_with:items.*.addons', 'integer', 'min:0', 'max:99'],
         ]);
 
-        $products = Product::query()
-            ->whereIn('id', collect($data['items'])->pluck('product_id'))
-            ->where('is_active', true)
-            ->get()
-            ->keyBy('id');
-
-        $subtotal = collect($data['items'])->sum(
-            fn (array $item) => ($products->get($item['product_id'])?->effectivePrice() ?? 0) * (int) $item['quantity']
-        );
+        // Same pricing as the order itself, including chosen options and add-ons.
+        $subtotal = collect(CartLines::resolve($data['items'])['lines'])->sum(fn (array $line) => $line['price'] * $line['quantity']);
 
         try {
             $coupon = Coupon::resolveForOrder(
