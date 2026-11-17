@@ -215,7 +215,9 @@ export function OrderList({ orders, empty }: { orders: UserOrder[]; empty: React
                                     <span>${formatPrice(selected.total)}</span>
                                 </div>
                                 {selected.delivery_fee_pending && (
-                                    <p className="text-primary pt-1 font-medium">We will contact you to confirm order and agree on a delivery fee.</p>
+                                    <p className="pt-2 text-center text-base font-bold text-[#472712]">
+                                        We will contact you to confirm order and agree on a delivery fee.
+                                    </p>
                                 )}
                             </div>
 

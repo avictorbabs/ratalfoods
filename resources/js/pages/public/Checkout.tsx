@@ -396,7 +396,7 @@ export default function Checkout({
                                     <span>${formatPrice(orderComplete.total)}</span>
                                 </div>
                                 {orderComplete.delivery_fee_pending && (
-                                    <p className="font-body text-primary pt-1 text-sm font-medium">
+                                    <p className="font-body pt-2 text-center text-base font-bold text-[#472712]">
                                         We will contact you to confirm order and agree on a delivery fee.
                                     </p>
                                 )}
@@ -1140,7 +1140,7 @@ export default function Checkout({
                                             <span>${formatPrice(total)}</span>
                                         </div>
                                         {deliveryFeePending && (
-                                            <p className="font-body text-primary pt-1 text-sm font-medium">
+                                            <p className="font-body pt-2 text-center text-base font-bold text-[#472712]">
                                                 We will contact you to confirm order and agree on a delivery fee.
                                             </p>
                                         )}
