@@ -138,25 +138,31 @@ class OrderController extends Controller
         $deliveryTimePreference = null;
         $deliveryFee = 0.0;
         $deliveryZone = null;
+        // With delivery fees switched off in the admin, delivery orders carry no fee and the store agrees one afterwards.
+        $deliveryFeePending = false;
 
         if ($method === CollectionMethod::DeliveryRequest) {
             $deliveryDate = $request->validated('delivery_date');
             $deliveryTime = substr((string) $request->validated('delivery_time'), 0, 5);
             $deliveryTimePreference = Carbon::parse($deliveryDate)->format('F j, Y').' at '.Carbon::createFromFormat('H:i', $deliveryTime)->format('g:i A');
 
-            $matchedZone = DeliveryFee::resolveForAddress($request->validated('delivery_address'));
+            if (! $settings->delivery_fee_enabled) {
+                $deliveryFeePending = true;
+            } else {
+                $matchedZone = DeliveryFee::resolveForAddress($request->validated('delivery_address'));
 
-            if (! $matchedZone) {
-                throw ValidationException::withMessages([
-                    'delivery_address' => 'We could not match a delivery zone for this address. Please check the address or contact the store.',
-                ]);
+                if (! $matchedZone) {
+                    throw ValidationException::withMessages([
+                        'delivery_address' => 'We could not match a delivery zone for this address. Please check the address or contact the store.',
+                    ]);
+                }
+
+                $deliveryFee = (float) $matchedZone->fee;
+                $deliveryZone = $matchedZone->name;
             }
-
-            $deliveryFee = (float) $matchedZone->fee;
-            $deliveryZone = $matchedZone->name;
         }
 
-        return DB::transaction(function () use ($request, $settings, $products, $method, $pickupTime, $deliveryTimePreference, $paymentMethod, $deliveryFee, $deliveryZone) {
+        return DB::transaction(function () use ($request, $settings, $products, $method, $pickupTime, $deliveryTimePreference, $paymentMethod, $deliveryFee, $deliveryZone, $deliveryFeePending) {
             $subtotal = 0;
             $lineItems = [];
 
@@ -242,6 +248,7 @@ class OrderController extends Controller
                 'coupon_code' => $coupon?->code,
                 'tax' => $tax,
                 'delivery_fee' => $deliveryFee,
+                'delivery_fee_pending' => $deliveryFeePending,
                 'delivery_zone' => $deliveryZone,
                 'total' => $total,
                 'collection_method' => $method,
@@ -403,6 +410,7 @@ class OrderController extends Controller
                 'coupon_code' => $order->coupon_code,
                 'tax' => (float) $order->tax,
                 'delivery_fee' => (float) $order->delivery_fee,
+                'delivery_fee_pending' => (bool) $order->delivery_fee_pending,
                 'delivery_zone' => $order->delivery_zone,
                 'total' => (float) $order->total,
                 'collection_method' => $order->collection_method->value,

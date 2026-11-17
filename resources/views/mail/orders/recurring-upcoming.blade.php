@@ -25,6 +25,11 @@ Hi {{ $order->customer_name }}, here is your {{ strtolower($recurring->frequency
 | **Total** | | **${{ number_format((float) $order->total, 2) }}** |
 </x-mail::table>
 
+@if ($order->delivery_fee_pending)
+**We will contact you to confirm order and agree on a delivery fee.**
+
+@endif
+
 Not needing it this time? You can skip this one, and your schedule carries on as normal. Skipping works until the kitchen starts on your order.
 
 <x-mail::button :url="$skipUrl">

@@ -114,6 +114,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/coupons/{coupon}', [AdminCouponController::class, 'update'])->name('coupons.update');
     Route::delete('/coupons/{coupon}', [AdminCouponController::class, 'destroy'])->name('coupons.destroy');
     Route::get('/delivery-fees', [AdminDeliveryFeeController::class, 'index'])->name('delivery-fees.index');
+    Route::put('/delivery-fees/toggle', [AdminDeliveryFeeController::class, 'toggle'])->name('delivery-fees.toggle');
     Route::post('/delivery-fees', [AdminDeliveryFeeController::class, 'store'])->name('delivery-fees.store');
     Route::put('/delivery-fees/{deliveryFee}', [AdminDeliveryFeeController::class, 'update'])->name('delivery-fees.update');
     Route::delete('/delivery-fees/{deliveryFee}', [AdminDeliveryFeeController::class, 'destroy'])->name('delivery-fees.destroy');

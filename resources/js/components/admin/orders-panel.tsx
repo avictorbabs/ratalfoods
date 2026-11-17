@@ -32,6 +32,7 @@ export type AdminOrder = {
     delivery_address?: string | null;
     delivery_time_preference?: string | null;
     delivery_fee?: string | number | null;
+    delivery_fee_pending?: boolean;
     delivery_zone?: string | null;
     payment_method?: string | null;
     notes?: string | null;
@@ -252,6 +253,12 @@ export default function OrdersPanel({ orders, statusOptions, title = 'Recent Ord
                                         <div>
                                             <p className="text-muted-foreground text-xs tracking-wider uppercase">Preferred Delivery</p>
                                             <p>{selectedOrder.delivery_time_preference}</p>
+                                        </div>
+                                    )}
+                                    {selectedOrder.delivery_fee_pending && (
+                                        <div>
+                                            <p className="text-muted-foreground text-xs tracking-wider uppercase">Delivery Fee</p>
+                                            <p className="font-medium text-amber-700">Not set. Contact the customer to agree on a fee.</p>
                                         </div>
                                     )}
                                     {(Number(selectedOrder.delivery_fee) > 0 || selectedOrder.delivery_zone) && (

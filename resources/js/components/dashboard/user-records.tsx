@@ -18,6 +18,7 @@ export type UserOrder = {
     tracking_url?: string | null;
     tax: string;
     delivery_fee: string;
+    delivery_fee_pending?: boolean;
     delivery_zone: string | null;
     status: string;
     payment_status: string;
@@ -213,6 +214,9 @@ export function OrderList({ orders, empty }: { orders: UserOrder[]; empty: React
                                     <span>Total</span>
                                     <span>${formatPrice(selected.total)}</span>
                                 </div>
+                                {selected.delivery_fee_pending && (
+                                    <p className="text-primary pt-1 font-medium">We will contact you to confirm order and agree on a delivery fee.</p>
+                                )}
                             </div>
 
                             {selected.notes && <p className="font-body text-muted-foreground text-sm">Notes: {selected.notes}</p>}

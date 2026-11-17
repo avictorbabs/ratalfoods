@@ -91,8 +91,11 @@ class RecurringOrders
         $pickup = $recurring->collection_method === CollectionMethod::Pickup;
         $deliveryFee = 0.0;
         $zoneName = null;
+        $feePending = false;
 
-        if (! $pickup) {
+        if (! $pickup && ! $settings->delivery_fee_enabled) {
+            $feePending = true;
+        } elseif (! $pickup) {
             $zone = DeliveryFee::resolveForAddress($recurring->delivery_address);
 
             if (! $zone) {
@@ -111,7 +114,7 @@ class RecurringOrders
             $notes .= ' Not available this time: '.implode(', ', $resolved['unavailable']).'.';
         }
 
-        $order = DB::transaction(function () use ($recurring, $resolved, $date, $pickup, $subtotal, $tax, $deliveryFee, $zoneName, $notes): Order {
+        $order = DB::transaction(function () use ($recurring, $resolved, $date, $pickup, $subtotal, $tax, $deliveryFee, $zoneName, $notes, $feePending): Order {
             $order = Order::query()->create([
                 'user_id' => $recurring->user_id,
                 'customer_name' => $recurring->customer_name,
@@ -120,6 +123,7 @@ class RecurringOrders
                 'subtotal' => $subtotal,
                 'tax' => $tax,
                 'delivery_fee' => $deliveryFee,
+                'delivery_fee_pending' => $feePending,
                 'delivery_zone' => $zoneName,
                 'total' => round($subtotal + $tax + $deliveryFee, 2),
                 'collection_method' => $recurring->collection_method,

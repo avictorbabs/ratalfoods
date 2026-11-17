@@ -29,6 +29,7 @@ type TrackedOrder = {
     loyalty_discount: number;
     tax: number;
     delivery_fee: number;
+    delivery_fee_pending: boolean;
     total: number;
     items: { name: string; quantity: number; price: number }[];
 };
@@ -203,6 +204,9 @@ export default function OrderTracking({ order, timeline }: { order: TrackedOrder
                                     <span>Total</span>
                                     <span>${formatPrice(order.total)}</span>
                                 </div>
+                                {order.delivery_fee_pending && (
+                                    <p className="text-primary pt-1 font-medium">We will contact you to confirm order and agree on a delivery fee.</p>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -103,6 +103,7 @@ export type OrderComplete = {
     coupon_code?: string | null;
     tax: number;
     delivery_fee?: number;
+    delivery_fee_pending?: boolean;
     delivery_zone?: string | null;
     total: number;
     collection_method: 'pickup' | 'delivery_request';

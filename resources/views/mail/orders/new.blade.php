@@ -34,6 +34,11 @@
 | **Total** | | **${{ number_format((float) $order->total, 2) }}** |
 </x-mail::table>
 
+@if ($order->delivery_fee_pending)
+**Delivery fee not set.** Delivery fees are switched off, so contact the customer to confirm the order and agree on a delivery fee.
+
+@endif
+
 **Notes:** {{ $order->notes ?: 'None' }}
 
 <x-mail::button :url="$adminUrl">

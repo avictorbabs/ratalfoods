@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryFee;
+use App\Models\StoreSetting;
 use App\Support\PickupInfo;
 use App\Support\PickupLeadTime;
 use Inertia\Inertia;
@@ -20,6 +21,7 @@ class CheckoutPageController extends Controller
 
         return Inertia::render('public/Checkout', [
             'deliveryFees' => $deliveryFees,
+            'deliveryFeeEnabled' => (bool) StoreSetting::current()->delivery_fee_enabled,
             'stripeEnabled' => filled(config('services.stripe.secret')),
             'pickupInfo' => PickupInfo::resolve(),
             'earliestPickup' => PickupLeadTime::window(),

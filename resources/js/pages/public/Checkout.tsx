@@ -67,12 +67,14 @@ type PickupInfo = { heading: string; hours: string; ready_label: string; ready_t
 
 export default function Checkout({
     deliveryFees = [],
+    deliveryFeeEnabled = true,
     stripeEnabled = false,
     pickupInfo,
     earliestPickup: standardPickup,
     quickPickup,
 }: {
     deliveryFees?: DeliveryFeeZone[];
+    deliveryFeeEnabled?: boolean;
     stripeEnabled?: boolean;
     pickupInfo?: PickupInfo;
     earliestPickup?: PickupWindow;
@@ -130,7 +132,9 @@ export default function Checkout({
     const pointsEarned = loyalty ? Math.floor(Math.max(0, pointsBase - loyaltyDiscount) * loyalty.points_per_dollar) : 0;
 
     const tax = (subtotal - discount - loyaltyDiscount) * taxRate;
-    const matchedDelivery = method === 'delivery_request' ? matchDeliveryFee(data.delivery_address, deliveryFees) : null;
+    // With delivery fees switched off in the admin there is no zone, no fee and nothing to match: the store agrees the fee afterwards.
+    const deliveryFeePending = method === 'delivery_request' && !deliveryFeeEnabled;
+    const matchedDelivery = method === 'delivery_request' && deliveryFeeEnabled ? matchDeliveryFee(data.delivery_address, deliveryFees) : null;
     const deliveryFee = matchedDelivery?.fee ?? 0;
     const total = subtotal - discount - loyaltyDiscount + tax + deliveryFee;
 
@@ -391,6 +395,11 @@ export default function Checkout({
                                     <span>Total</span>
                                     <span>${formatPrice(orderComplete.total)}</span>
                                 </div>
+                                {orderComplete.delivery_fee_pending && (
+                                    <p className="font-body text-primary pt-1 text-sm font-medium">
+                                        We will contact you to confirm order and agree on a delivery fee.
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -691,13 +700,13 @@ export default function Checkout({
                                                                     {errors.delivery_address || pageErrors?.delivery_address}
                                                                 </p>
                                                             )}
-                                                            {data.delivery_address.trim() !== '' && matchedDelivery && (
+                                                            {deliveryFeeEnabled && data.delivery_address.trim() !== '' && matchedDelivery && (
                                                                 <p className="font-body text-accent mt-1 text-xs">
                                                                     Matched zone: {matchedDelivery.name} — ${formatPrice(matchedDelivery.fee)}{' '}
                                                                     delivery
                                                                 </p>
                                                             )}
-                                                            {data.delivery_address.trim() !== '' && !matchedDelivery && (
+                                                            {deliveryFeeEnabled && data.delivery_address.trim() !== '' && !matchedDelivery && (
                                                                 <p className="font-body text-destructive mt-1 text-xs">
                                                                     No delivery zone matches this address yet. Try including your city or contact the
                                                                     store.
@@ -810,7 +819,7 @@ export default function Checkout({
                                                                     !availablePickupTimes.includes(data.pickup_time))) ||
                                                             (method === 'delivery_request' &&
                                                                 (!data.delivery_address ||
-                                                                    !matchedDelivery ||
+                                                                    (deliveryFeeEnabled && !matchedDelivery) ||
                                                                     !data.delivery_date ||
                                                                     !data.delivery_time))
                                                         }
@@ -1117,7 +1126,7 @@ export default function Checkout({
                                             <span className="text-muted-foreground">Tax ({storeSettings.tax_rate}%)</span>
                                             <span>${formatPrice(tax)}</span>
                                         </div>
-                                        {method === 'delivery_request' && (
+                                        {method === 'delivery_request' && !deliveryFeePending && (
                                             <div className="font-body flex justify-between text-sm">
                                                 <span className="text-muted-foreground">
                                                     Delivery
@@ -1130,6 +1139,11 @@ export default function Checkout({
                                             <span>Total</span>
                                             <span>${formatPrice(total)}</span>
                                         </div>
+                                        {deliveryFeePending && (
+                                            <p className="font-body text-primary pt-1 text-sm font-medium">
+                                                We will contact you to confirm order and agree on a delivery fee.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

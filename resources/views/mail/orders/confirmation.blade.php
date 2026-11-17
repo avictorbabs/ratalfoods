@@ -34,6 +34,11 @@ Hi {{ $order->customer_name }}, we've received your order and are getting it rea
 | **Total** | | **${{ number_format((float) $order->total, 2) }}** |
 </x-mail::table>
 
+@if ($order->delivery_fee_pending)
+**We will contact you to confirm order and agree on a delivery fee.**
+
+@endif
+
 @if ($order->notes)
 **Your notes:** {{ $order->notes }}
 @endif

@@ -36,6 +36,7 @@ class OrderTrackingController extends Controller
                 'loyalty_discount' => (float) $order->loyalty_discount,
                 'tax' => (float) $order->tax,
                 'delivery_fee' => (float) $order->delivery_fee,
+                'delivery_fee_pending' => (bool) $order->delivery_fee_pending,
                 'total' => (float) $order->total,
                 'items' => $order->items->map(fn ($item) => [
                     'name' => $item->product_name,
